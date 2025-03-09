@@ -1,6 +1,10 @@
 import tensorflow as tf
 import pandas as pd
 from tqdm import tqdm
+
+
+
+
 class DataUtil:
     # 初始化 数据的一些配置，文件路径， 类别型特征，数值型特征和label 名
     def __init__(self, sparse_feature_names, dense_feature_names, label_name, chunk_size = 100000):
@@ -41,8 +45,27 @@ class DataUtil:
 
         writer.close()
 
-    def read_tfrecord(self):
-        return -1
+    def parse_function(self, serialized_example):
+        feature_description = {
+            name: tf.io.FixedLenFeature([], tf.float32) for name in self.dense_cols
+        }
+        feature_description.update(
+            {
+                name: tf.io.FixedLenFeature([], tf.string) for name in self.sparse_cols
+            }
+        )
+        feature_description[self.label_cols[0]] = tf.io.FixedLenFeature([], tf.float32)
+
+        example = tf.io.parse_single_example(serialized_example, feature_description)
+        return example
+    def read_tfrecord(self, read_path, batch_size):
+        dataset = tf.data.TFRecordDataset(read_path)
+        dataset = dataset.map(self.parse_function)
+        dataset = dataset.shuffle(buffer_size=100000)
+        dataset = dataset.prefetch(buffer_size=1000)
+        return dataset.batch(512)
+
+
 
 
 # write_tfrecord('./criteo_sample.tr.tfrecords',train,sparse_features,dense_features,'label')
