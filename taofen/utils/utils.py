@@ -3,13 +3,11 @@ import pandas as pd
 from tqdm import tqdm
 class DataUtil:
     # 初始化 数据的一些配置，文件路径， 类别型特征，数值型特征和label 名
-    def __init__(self, filename,  sparse_feature_names, dense_feature_names, label_name, chunk_size = 100000):
-        self.filename = filename
+    def __init__(self, sparse_feature_names, dense_feature_names, label_name, chunk_size = 100000):
         self.chunk_size = chunk_size
         self.sparse_cols = sparse_feature_names
         self.dense_cols = dense_feature_names
         self.label_cols = label_name if isinstance(label_name, list ) else [label_name]
-        self.df = pd.read_csv(self.filename, chunksize = chunk_size, delimiter = '\t', names =  self.label_cols + self.dense_cols + self.sparse_cols )
 
     def make_example(self, line):
         features = {feat: tf.train.Feature(float_list=tf.train.FloatList(value=[line[1][feat]])) for feat in
@@ -21,11 +19,13 @@ class DataUtil:
         return tf.train.Example(features=tf.train.Features(feature=features))
 
 
-    def write_tfrecord(self, save_path, start, end, spase_fillna = 'NaN', dense_fillna = -1):
+    def write_tfrecord(self, read_path, save_path, start, end, spase_fillna = 'NaN', dense_fillna = -1):
+        df = pd.read_csv(read_path, chunksize = self.chunk_size, delimiter = '\t', names =  self.label_cols + self.dense_cols + self.sparse_cols )
+
         writer = tf.io.TFRecordWriter(save_path)
         temp_rows = 0
 
-        for batch in self.df:
+        for batch in df:
             # 填补缺失值，否则 没法存成tfrecords
             batch.loc[:, self.sparse_cols] = batch[self.sparse_cols].fillna(spase_fillna)
             batch.loc[:, self.dense_cols] = batch[self.dense_cols].fillna(dense_fillna)
