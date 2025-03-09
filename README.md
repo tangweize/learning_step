@@ -1,2 +1,2 @@
 # learning_step
-learn some techi
+## learn some techi step by step
