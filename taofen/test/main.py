@@ -8,7 +8,7 @@ sys.path.append("../data/")
 from dataconfig import *
 from utils import *
 
-# feature 分类
+# feature 分类2
 spase_feature_names = DATA_CONFIG['SPARSE_FEATURES']
 dense_feature_names = DATA_CONFIG['DENSE_FEATURES']
 label_feature_names = DATA_CONFIG['label']
