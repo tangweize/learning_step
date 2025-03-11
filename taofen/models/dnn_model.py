@@ -18,7 +18,7 @@ class Custom_Model(Model):
     def call(self, inputs):
         x = self.preprocess_model(inputs)
         x = self.dnn(x)
-        return x
+        return tf.sigmoid(x)
 
     def tain_step(self, inputs, label):
 
