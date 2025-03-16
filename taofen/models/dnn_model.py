@@ -20,19 +20,22 @@ class Custom_Model(Model):
         x = self.dnn(x)
         return tf.sigmoid(x)
 
-    def tain_step(self, inputs, label):
+    def train_step(self, train_data):
 
-
+        inputs, label = train_data
         with tf.GradientTape() as tape:
             predict = self(inputs)
-            losses = self.loss(label,predict)
+            # losses = self.loss(label,predict)# 报错 
+            losses = tf.reduce_mean(self.loss(label, predict))  # ✅ 确保 loss 是一个数值
 
-        trainable_vars = self.trainable_vars
-        gradients = tape.GradientTape(losses, trainable_vars)
+        
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(losses, trainable_vars)
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-
+        self.compiled_metrics.update_state(label, predict)
         results = {m.name: m.result() for m in self.metrics}
         return results
+
 
 
 # 变长输入 其实是固定padding
