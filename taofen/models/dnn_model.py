@@ -84,3 +84,57 @@ class Input_Process_Model(Model):
 
     def call(self, X):
         return self.model(X)
+
+
+import tensorflow as tf
+
+
+class MultiLoss_PCOC(tf.keras.losses.Loss):
+    def __init__(self, lambda_pcoc=0.1, **kwargs):
+        """
+        lambda_pcoc: 控制 PCOC 稳定性的权重
+        """
+        super(MultiLoss, self).__init__(**kwargs)
+        self.bce_loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
+        self.lambda_pcoc = lambda_pcoc
+        self.pcoc_prev = tf.Variable(0.0, trainable=False, dtype=tf.float32)  # 记录前一 epoch 的 PCOC
+
+    def call(self, y_true, y_pred_mask):
+        y_pred, mask = y_pred_mask  # 解包 y_pred 和 mask
+        return self.compute_loss(y_true, y_pred, mask)
+
+    def compute_loss(self, y_true, y_pred, mask):
+        sum_loss = 0.0
+        batch_size = tf.shape(y_true)[0]
+        num_classes = tf.shape(y_true)[1]
+        count = tf.constant(0.0, dtype=tf.float32)
+
+        for j in range(num_classes):
+            tp_yhat = tf.expand_dims(y_pred[:, j], axis=1)
+            tp_y = tf.expand_dims(y_true[:, j], axis=1)
+            sample_weight = tf.expand_dims(mask[:, j], axis=1)
+
+            sum_loss += self.bce_loss(tp_y, tp_yhat, sample_weight=sample_weight)
+            count += 1
+
+            # 计算所有类别的平均 loss
+        avg_loss = sum_loss / count if count > 0 else tf.constant(0.0, dtype=tf.float32)
+
+        # ====== 计算最后一个类别的 PCOC ======
+        last_yhat = tf.expand_dims(y_pred[:, -1], axis=1)
+        last_mask = tf.expand_dims(mask[:, -1], axis=1)
+
+        # 避免除 0
+        mask_sum = tf.reduce_sum(last_mask) + 1e-6
+        pcoc_last = tf.reduce_sum(last_yhat * last_mask) / mask_sum
+
+        # 计算 PCOC 平稳正则项
+        reg_loss = tf.square(pcoc_last - self.pcoc_prev)
+
+        # 更新 self.pcoc_prev 为当前 batch 的 PCOC（仅在训练时更新）
+        self.pcoc_prev.assign(pcoc_last)
+
+        # 组合 loss
+        total_loss = avg_loss + self.lambda_pcoc * reg_loss
+
+        return total_loss

@@ -68,5 +68,17 @@ class DataUtil:
 
 
 
+import tensorflow as tf
+
+def format_dict(data: dict) -> str:
+    formatted_output = []
+    for key, value in data.items():
+        if isinstance(value, tf.Tensor):
+            formatted_output.append(f"{key}: {value.numpy().tolist()}")
+        else:
+            formatted_output.append(f"{key}: {value}")
+    return "\n".join(formatted_output)
+
+
 # write_tfrecord('./criteo_sample.tr.tfrecords',train,sparse_features,dense_features,'label')
 # write_tfrecord('./criteo_sample.te.tfrecords',test,sparse_features,dense_features,'label')
