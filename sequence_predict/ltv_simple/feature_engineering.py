@@ -26,7 +26,7 @@ def days_past_last_promo(current_date, promo_set, holiday_set):
     past_dates = [d for d in promo_set.union(holiday_set) if d < current_date.date()]
     if not past_dates:
         return 0
-    delta = max((current_date.date() - d).days for d in past_dates)
+    delta = min((current_date.date() - d).days for d in past_dates)
     return delta if delta <= 10 else 0
 
 def get_season(month):
