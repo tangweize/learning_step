@@ -36,8 +36,6 @@ class Custom_Model(Model):
         results = {m.name: m.result() for m in self.metrics}
         return results
 
-
-
 # 变长输入 其实是固定padding
 class Input_Process_Model(Model):
     def __init__(self, inputs, behavior_list, log2_features, log10_features, sparse_features):
@@ -85,16 +83,12 @@ class Input_Process_Model(Model):
     def call(self, X):
         return self.model(X)
 
-
 import tensorflow as tf
-
 
 class MultiLoss_PCOC(tf.keras.losses.Loss):
     def __init__(self, lambda_pcoc=0.1, **kwargs):
-        """
-        lambda_pcoc: 控制 PCOC 稳定性的权重
-        """
-        super(MultiLoss, self).__init__(**kwargs)
+
+        super().__init__()
         self.bce_loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
         self.lambda_pcoc = lambda_pcoc
         self.pcoc_prev = tf.Variable(0.0, trainable=False, dtype=tf.float32)  # 记录前一 epoch 的 PCOC
@@ -138,3 +132,93 @@ class MultiLoss_PCOC(tf.keras.losses.Loss):
         total_loss = avg_loss + self.lambda_pcoc * reg_loss
 
         return total_loss
+class Dense_Process_Zscore_Layer(layers.Layer):
+    def __init__(self, sparse_features, dense_features, feature_statics):
+        super().__init__()
+        self.sparse_features = sparse_features
+        self.dense_features = dense_features
+        self.concat_layer = layers.Concatenate()
+        self.dense_feature_statics = feature_statics
+        # 初始化归一化层时，可以为每个特征指定均值和标准差
+        self.feature_means = {}
+        self.feature_stds = {}
+
+    def build(self, input_shape):
+        for feature in self.dense_features:
+            self.feature_means[feature] = self.add_weight(name=f"{feature}_mean",
+                                                          shape=(1,),
+                                                          initializer=tf.keras.initializers.Constant(self.dense_feature_statics[feature]['mean']),
+                                                          trainable=False)
+            self.feature_stds[feature] = self.add_weight(name=f"{feature}_std",
+                                                         shape=(1,),
+                                                         initializer=tf.keras.initializers.Constant(self.dense_feature_statics[feature]['std']),
+                                                         trainable=False)
+    def call(self, inputs):
+        processed_dense_features = []
+
+        for field, input_tensor in inputs.items():
+            if field in self.dense_features:
+                mean = self.feature_means[field]
+                std = self.feature_stds[field]
+                input_cast = tf.cast(input_tensor, tf.float32)
+
+                normalized_feature = (input_cast - mean) / (std + 1e-7)
+                temp_feature = tf.expand_dims(normalized_feature, 1)
+                processed_dense_features.append(temp_feature)
+
+        return self.concat_layer(processed_dense_features)
+
+
+
+
+
+        return self.concat_layer(concat_numeric)
+
+class Cretio_BASE_DNN(Model):
+    def __init__(self, units, dense_process_layer, sparse_features, bins = 100000, emb_dim = 8):
+        super().__init__()
+        self.preprocess_model = dense_process_layer
+        self.dnn = keras.Sequential()
+        self.sparse_features = sparse_features
+        for unint in units:
+            self.dnn.add(
+                layers.Dense(unint, activation='relu')
+            )
+        self.dnn.add(layers.Dense(1))
+
+        self.hash_layer = {}
+        self.emb_layer = {}
+        self.concat_embedding = layers.Concatenate()
+        for sparse_feature in sparse_features:
+            hash_layer = keras.layers.Hashing(num_bins=bins)
+            emb_layer = keras.layers.Embedding(input_dim=bins, output_dim=emb_dim)
+
+            self.hash_layer[sparse_feature] = hash_layer
+            self.emb_layer[sparse_feature] = emb_layer
+
+    def call(self, inputs):
+        x = self.preprocess_model(inputs)
+
+        embeddings = []
+        for name, input_tensor in inputs.items():
+            if name in self.sparse_features:
+                temp_emb = self.emb_layer[name](self.hash_layer[name](input_tensor))
+                embeddings.append(temp_emb)
+        embs = self.concat_embedding(embeddings)
+        x = keras.layers.Concatenate()([x, embs])
+        x = self.dnn(x)
+        return tf.sigmoid(x)
+
+    def train_step(self, train_data):
+
+        inputs, label = train_data
+        with tf.GradientTape() as tape:
+            predict = self(inputs)
+            losses = self.loss(label, predict)
+
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(losses, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.compiled_metrics.update_state(label, predict)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
