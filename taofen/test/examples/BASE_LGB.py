@@ -1,12 +1,13 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+import tqdm
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import roc_auc_score
 import lightgbm as lgb
 import sys
 import platform
-
+import category_encoders as ce
 sys.path.append("../../utils")
 sys.path.append("../../data/")
 sys.path.append("../../models/")
@@ -31,7 +32,7 @@ def tf_dataset_to_numpy(tf_dataset, dense_cols, sparse_cols, label_name):
     sparse_features = []
     labels = []
 
-    for batch in tf_dataset:
+    for batch in tqdm(tf_dataset):
         dense = np.stack([batch[col].numpy() for col in dense_cols], axis=1)
         sparse = np.stack([batch[col].numpy() for col in sparse_cols], axis=1).astype(str)
         label = batch[label_name].numpy()
@@ -52,18 +53,20 @@ X_test_dense,  X_test_sparse,  y_test  = tf_dataset_to_numpy(eval_data, dense_fe
 
 # Step 4. 构造 pandas dataframe
 X_train = pd.DataFrame(np.hstack([X_train_dense, X_train_sparse]), columns=dense_feature_names + sparse_feature_names)
+X_train[dense_feature_names] = X_train[dense_feature_names].apply(pd.to_numeric)
+
 X_valid = pd.DataFrame(np.hstack([X_valid_dense, X_valid_sparse]), columns=dense_feature_names + sparse_feature_names)
-X_test  = pd.DataFrame(np.hstack([X_test_dense,  X_test_sparse]),  columns=dense_feature_names + sparse_feature_names)
+X_valid[dense_feature_names] = X_valid[dense_feature_names].apply(pd.to_numeric)
+
+X_test = pd.DataFrame(np.hstack([X_test_dense,  X_test_sparse]),  columns=dense_feature_names + sparse_feature_names)
+X_test[dense_feature_names] = X_test[dense_feature_names].apply(pd.to_numeric)
+
 
 # Step 5. LabelEncode 稀疏特征
 for col in sparse_feature_names:
-    le = LabelEncoder()
-    full_col_data = X_train[col].astype(str)
-    le.fit(full_col_data)
-
-    X_train[col] = le.transform(X_train[col].astype(str))
-    X_valid[col] = le.transform(X_valid[col].astype(str))
-    X_test[col]  = le.transform(X_test[col].astype(str))
+    X_train[col] = X_train[col].apply(lambda x: hash(str(x)) % 100000 )
+    X_valid[col] = X_valid[col].apply(lambda x: hash(str(x)) % 100000 )
+    X_test[col] = X_test[col].apply(lambda x: hash(str(x)) % 100000 )
 
 # Step 6. LightGBM 数据构造
 lgb_train = lgb.Dataset(X_train, label=y_train, categorical_feature=sparse_feature_names)
@@ -81,10 +84,12 @@ params = {
     'bagging_freq': 5,
     'verbosity': -1,
     'boosting_type': 'gbdt',
-    'seed': 42
+    'seed': 42,
+    'early_stopping_rounds':50,
+    'verbose_eval': 50
 }
 
-model = lgb.train(params, lgb_train, valid_sets=[lgb_train, lgb_valid], num_boost_round=1000, early_stopping_rounds=50, verbose_eval=50)
+model = lgb.train(params, lgb_train, valid_sets=[lgb_train, lgb_valid], num_boost_round=1000, )
 
 # Step 8. 评估 AUC
 y_valid_pred = model.predict(X_valid, num_iteration=model.best_iteration)
