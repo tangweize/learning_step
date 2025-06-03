@@ -45,10 +45,10 @@ inputs = get_cretio_input(dense_feature_names, spase_feature_names)
 # 计算dense features 均值和方差
 dense_feature_statics = get_dataset_statics(dataset, dense_feature_names)
 # z-score 初始化
-# dense_layer = Dense_Process_Zscore_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
+dense_layer = Dense_Process_Zscore_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
 # log 初始化
-dense_layer = Dense_Process_LOG_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
-model = Cretio_BASE_DNN([128,128,64], dense_layer, spase_feature_names)
+# dense_layer = Dense_Process_LOG_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
+model = Cretio_DEEPFM_DNN([128,128,64], dense_layer, spase_feature_names)
 
 
 

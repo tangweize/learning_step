@@ -168,11 +168,27 @@ class Dense_Process_Zscore_Layer(layers.Layer):
 
         return self.concat_layer(processed_dense_features)
 
+class Dense_Process_LOG_Layer(layers.Layer):
+    def __init__(self, sparse_features, dense_features, feature_statics):
+        super().__init__()
+        self.sparse_features = sparse_features
+        self.dense_features = dense_features
+        self.concat_layer = layers.Concatenate()
+        self.dense_feature_statics = feature_statics
 
+    def call(self, inputs):
+        processed_dense_features = []
 
+        for field, input_tensor in inputs.items():
+            if field in self.dense_features:
+                input_cast = tf.cast(input_tensor, tf.float32)
+                # 可能有脏数据， 数据截断
+                input_cast = tf.maximum(input_cast, -1)
+                normalized_feature = tf.math.log1p(input_cast + 2) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
+                temp_feature = tf.expand_dims(normalized_feature, 1)
+                processed_dense_features.append(temp_feature)
 
-
-        return self.concat_layer(concat_numeric)
+        return self.concat_layer(processed_dense_features)
 
 class Cretio_BASE_DNN(Model):
     def __init__(self, units, dense_process_layer, sparse_features, bins = 100000, emb_dim = 8):
@@ -205,6 +221,76 @@ class Cretio_BASE_DNN(Model):
                 temp_emb = self.emb_layer[name](self.hash_layer[name](input_tensor))
                 embeddings.append(temp_emb)
         embs = self.concat_embedding(embeddings)
+        x = keras.layers.Concatenate()([x, embs])
+        x = self.dnn(x)
+        return tf.sigmoid(x)
+
+    def train_step(self, train_data):
+
+        inputs, label = train_data
+        with tf.GradientTape() as tape:
+            predict = self(inputs)
+            losses = self.loss(label, predict)
+
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(losses, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.compiled_metrics.update_state(label, predict)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
+
+
+#FM LAYER
+
+class FM(layers.Layer):
+    def __init__(self):
+        super().__init__()
+    def call(self, input_embeddings):  # input_embeddings shape : batch x n x embedding_dim
+        sum_squre = tf.reduce_sum(input_embeddings, axis = 1 , keepdims=True) * tf.reduce_sum(input_embeddings, axis = 1 , keepdims=True)
+        squre_sum = tf.reduce_sum(input_embeddings * input_embeddings, axis = 1, keepdims=True)
+
+        cross_term = sum_squre - squre_sum
+        return 0.5 * tf.reduce_sum(cross_term, axis=2, keepdims=False )
+
+# DEEP FM
+class Cretio_DEEPFM_DNN(Model):
+    def __init__(self, units, dense_process_layer, sparse_features, bins = 100000, emb_dim = 8):
+        super().__init__()
+        self.preprocess_model = dense_process_layer
+        self.dnn = keras.Sequential()
+        self.sparse_features = sparse_features
+        for unint in units:
+            self.dnn.add(
+                layers.Dense(unint, activation='relu')
+            )
+        self.dnn.add(layers.Dense(1))
+
+        self.hash_layer = {}
+        self.emb_layer = {}
+        self.concat_embedding = layers.Concatenate()
+        self.fm = FM()
+        for sparse_feature in sparse_features:
+            hash_layer = keras.layers.Hashing(num_bins=bins)
+            emb_layer = keras.layers.Embedding(input_dim=bins, output_dim=emb_dim)
+
+            self.hash_layer[sparse_feature] = hash_layer
+            self.emb_layer[sparse_feature] = emb_layer
+
+    def call(self, inputs):
+        x = self.preprocess_model(inputs)
+
+        embeddings = []
+        for name, input_tensor in inputs.items():
+            if name in self.sparse_features:
+                temp_emb = self.emb_layer[name](self.hash_layer[name](input_tensor))
+                #fm 特殊处理
+                embeddings.append(temp_emb)
+
+        embs = tf.stack(embeddings, axis=1)
+        # print(embs.shape)
+
+        embs = self.fm(embs)
+        print(embs.shape)
         x = keras.layers.Concatenate()([x, embs])
         x = self.dnn(x)
         return tf.sigmoid(x)
