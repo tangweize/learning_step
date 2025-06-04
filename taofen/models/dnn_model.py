@@ -308,3 +308,59 @@ class Cretio_DEEPFM_DNN(Model):
         self.compiled_metrics.update_state(label, predict)
         results = {m.name: m.result() for m in self.metrics}
         return results
+
+
+class Cretio_BASE_DNN_DROPOUT(Model):
+    def __init__(self, units, dense_process_layer, sparse_features, bins = 100000, emb_dim = 8, dropout_rate=0.5):
+        super().__init__()
+        self.preprocess_model = dense_process_layer
+        self.dnn = keras.Sequential()
+        self.sparse_features = sparse_features
+        for unint in units:
+            self.dnn.add(
+                layers.Dense(unint, activation='relu')
+            )
+            # 减少过拟合
+            self.dnn.add(
+                layers.Dropout(dropout_rate)
+            )
+
+        self.dnn.add(layers.Dense(1))
+
+        self.hash_layer = {}
+        self.emb_layer = {}
+        self.concat_embedding = layers.Concatenate()
+        for sparse_feature in sparse_features:
+            hash_layer = keras.layers.Hashing(num_bins=bins)
+            emb_layer = keras.layers.Embedding(input_dim=bins, output_dim=emb_dim)
+
+            self.hash_layer[sparse_feature] = hash_layer
+            self.emb_layer[sparse_feature] = emb_layer
+
+    def call(self, inputs):
+        x = self.preprocess_model(inputs)
+
+        embeddings = []
+        for name, input_tensor in inputs.items():
+            if name in self.sparse_features:
+                temp_emb = self.emb_layer[name](self.hash_layer[name](input_tensor))
+                embeddings.append(temp_emb)
+        embs = self.concat_embedding(embeddings)
+        x = keras.layers.Concatenate()([x, embs])
+        x = self.dnn(x)
+        return tf.sigmoid(x)
+
+    def train_step(self, train_data):
+
+        inputs, label = train_data
+        with tf.GradientTape() as tape:
+            predict = self(inputs)
+            losses = self.loss(label, predict)
+
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(losses, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.compiled_metrics.update_state(label, predict)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
+
