@@ -286,13 +286,14 @@ class Cretio_DEEPFM_DNN(Model):
                 #fm 特殊处理
                 embeddings.append(temp_emb)
 
+        sparse_emb_sum = tf.reduce_sum(layers.Concatenate()(embeddings), axis = 1)
+        # to fm
         embs = tf.stack(embeddings, axis=1)
         # print(embs.shape)
 
-        embs = self.fm(embs)
-        print(embs.shape)
-        x = keras.layers.Concatenate()([x, embs])
-        x = self.dnn(x)
+        fm_logit = self.fm(embs) + sparse_emb_sum
+
+        x = self.dnn(x) + fm_logit
         return tf.sigmoid(x)
 
     def train_step(self, train_data):
