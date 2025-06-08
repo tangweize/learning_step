@@ -48,7 +48,7 @@ dense_feature_statics = get_dataset_statics(dataset, dense_feature_names)
 # dense_layer = Dense_Process_Zscore_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
 # log 初始化
 dense_layer = Dense_Process_LOG_Layer(spase_feature_names, dense_feature_names, dense_feature_statics)
-model = Cretio_BASE_DNN([128,128,64], dense_layer, spase_feature_names)
+model = Cretio_BASE_DNN([200,200,200], dense_layer, spase_feature_names)
 
 
 
