@@ -323,3 +323,17 @@ def load_obj(file_path):
     return obj
 
 
+
+
+def read_feature_json_config(filename):
+    with open(filename, 'r', encoding='utf-8') as file:
+        # 使用json.load()函数读取文件内容并将其转换为字典
+        config = json.load(file)
+    group_2_features = {}
+    for i in config:
+        group_2_features[i] = []
+        for feature in config[i]:
+            group_2_features[i].append(feature['name'])
+    return group_2_features
+
+# group_2_features = read_feature_json_config('feature_config/feature_list.json')

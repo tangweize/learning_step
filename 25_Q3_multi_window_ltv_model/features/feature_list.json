@@ -1,0 +1,970 @@
+{
+  "user_dense_price_features": [
+    {
+      "name": "price_click_seq_avg",
+      "start": 0,
+      "end": 1,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "price_click_seq_recent",
+      "start": 1,
+      "end": 2,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "price_click_seq_most",
+      "start": 2,
+      "end": 3,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "user_real_pay_amt",
+      "start": 3,
+      "end": 4,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "user_tid_avg_price",
+      "start": 4,
+      "end": 5,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "user_vehicle_avg_price",
+      "start": 5,
+      "end": 6,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "by_order_page_avg_pay_price",
+      "start": 6,
+      "end": 7,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "by_list_page_avg_pay_price",
+      "start": 7,
+      "end": 8,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "total_pay_amount",
+      "start": 8,
+      "end": 9,
+      "value": [
+        0
+      ]
+    }
+  ],
+  "user_dense_duration_features": [
+    {
+      "name": "visit_duration",
+      "start": 0,
+      "end": 1,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "visit_duration_tire",
+      "start": 1,
+      "end": 2,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "visit_duration_maintenance",
+      "start": 2,
+      "end": 3,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_detail_page_duration",
+      "start": 3,
+      "end": 4,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_duration",
+      "start": 4,
+      "end": 5,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "maintaince_list_page_duration",
+      "start": 5,
+      "end": 6,
+      "value": [
+        0
+      ]
+    }
+  ],
+  "user_dense_features": [
+    {
+      "name": "banpen_visit",
+      "start": 0,
+      "end": 1,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "battery_visit",
+      "start": 1,
+      "end": 2,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "maintenance_visit",
+      "start": 2,
+      "end": 3,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "repair_visit",
+      "start": 3,
+      "end": 4,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "wash_visit",
+      "start": 4,
+      "end": 5,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "home_page_visit",
+      "start": 5,
+      "end": 6,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "key_page_visit_cnt",
+      "start": 6,
+      "end": 7,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "list_page_visit",
+      "start": 7,
+      "end": 8,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "page_visit_depth",
+      "start": 8,
+      "end": 9,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "search_page_visit",
+      "start": 9,
+      "end": 10,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tyre_visit",
+      "start": 10,
+      "end": 11,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "showorderpage_cnt",
+      "start": 11,
+      "end": 12,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "suborderpage_cnt",
+      "start": 12,
+      "end": 13,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "ordersub_cnt",
+      "start": 13,
+      "end": 14,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "order_related_page_cnt",
+      "start": 14,
+      "end": 15,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "cnt_start",
+      "start": 15,
+      "end": 16,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "show_order_shop_distance_avg",
+      "start": 16,
+      "end": 17,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "show_order_shop_distance_latest",
+      "start": 17,
+      "end": 18,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "cutratio_list_avg",
+      "start": 18,
+      "end": 19,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "cutratio_list_latest",
+      "start": 19,
+      "end": 20,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "selecttirecount_count",
+      "start": 20,
+      "end": 21,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "detailpage_new_cnt",
+      "start": 21,
+      "end": 22,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "ordersub_other_cnt",
+      "start": 22,
+      "end": 23,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "ordersub_maintenance_cnt",
+      "start": 23,
+      "end": 24,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntaiorder_shop_avg_distance",
+      "start": 24,
+      "end": 25,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntaiorder_shop_latest_distance",
+      "start": 25,
+      "end": 26,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyangorder_shop_avg_distance",
+      "start": 26,
+      "end": 27,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyangorder_shop_latest_distance",
+      "start": 27,
+      "end": 28,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "other_showorderpage_cnt",
+      "start": 28,
+      "end": 29,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "wash_showorderpage_cnt",
+      "start": 29,
+      "end": 30,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "maintenance_showorderpage_cnt",
+      "start": 30,
+      "end": 31,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_showorderpage_cnt",
+      "start": 31,
+      "end": 32,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "activity_page_clickcnt",
+      "start": 32,
+      "end": 33,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "activity_page_cnt",
+      "start": 33,
+      "end": 34,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "activity_page_click_ratio",
+      "start": 34,
+      "end": 35,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "shopsearch_submit_cnt",
+      "start": 35,
+      "end": 36,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "search_submit_cnt",
+      "start": 36,
+      "end": 37,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_99",
+      "start": 37,
+      "end": 38,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_300",
+      "start": 38,
+      "end": 39,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_600",
+      "start": 39,
+      "end": 40,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_900",
+      "start": 40,
+      "end": 41,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_2000",
+      "start": 41,
+      "end": 42,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_coupons_10000",
+      "start": 42,
+      "end": 43,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_99",
+      "start": 43,
+      "end": 44,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_300",
+      "start": 44,
+      "end": 45,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_600",
+      "start": 45,
+      "end": 46,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_900",
+      "start": 46,
+      "end": 47,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_2000",
+      "start": 47,
+      "end": 48,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "luntai_coupons_10000",
+      "start": 48,
+      "end": 49,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_99",
+      "start": 49,
+      "end": 50,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_300",
+      "start": 50,
+      "end": 51,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_600",
+      "start": 51,
+      "end": 52,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_900",
+      "start": 52,
+      "end": 53,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_2000",
+      "start": 53,
+      "end": 54,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "beauty_coupons_10000",
+      "start": 54,
+      "end": 55,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_detailpage_visit",
+      "start": 55,
+      "end": 56,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "baoyang_detailpage_visit",
+      "start": 56,
+      "end": 57,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "chepin_detailpage_visit",
+      "start": 57,
+      "end": 58,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_propotion_top1",
+      "start": 58,
+      "end": 59,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_propotion_top2",
+      "start": 59,
+      "end": 60,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_propotion_top3",
+      "start": 60,
+      "end": 61,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_times",
+      "start": 61,
+      "end": 62,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_discount",
+      "start": 62,
+      "end": 63,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_latest_pid_discount",
+      "start": 63,
+      "end": 64,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_pid_cvt7",
+      "start": 64,
+      "end": 65,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_pid_discount_vs_yest",
+      "start": 65,
+      "end": 66,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_cvr7",
+      "start": 66,
+      "end": 67,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_discount",
+      "start": 67,
+      "end": 68,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_pay_much",
+      "start": 68,
+      "end": 69,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_times",
+      "start": 69,
+      "end": 70,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_orderpage_coupons_click_n",
+      "start": 70,
+      "end": 71,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_orderpage_coupons_click_y",
+      "start": 71,
+      "end": 72,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_click_more_cnt",
+      "start": 72,
+      "end": 73,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_pk_cnt",
+      "start": 73,
+      "end": 74,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_comment_view_dura",
+      "start": 74,
+      "end": 75,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_detail_process_view_cnt",
+      "start": 75,
+      "end": 76,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_custom_page_stay_dura",
+      "start": 76,
+      "end": 77,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "pay_times",
+      "start": 77,
+      "end": 78,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "cancel_times",
+      "start": 78,
+      "end": 79,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "user_car_year",
+      "start": 79,
+      "end": 80,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "user_all_order_num",
+      "start": 80,
+      "end": 81,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "by_order_page_max_discount_rate",
+      "start": 81,
+      "end": 82,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "by_list_page_max_discount_rate",
+      "start": 82,
+      "end": 83,
+      "value": [
+        0
+      ]
+    }
+  ],
+  "user_sparse_features": [
+    {
+      "name": "request_hour_diff",
+      "start": 0,
+      "end": 1,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "is_register",
+      "start": 1,
+      "end": 2,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "is_fill_carinfo",
+      "start": 2,
+      "end": 3,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "dim_os_name",
+      "start": 3,
+      "end": 4,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "creative_classify",
+      "start": 4,
+      "end": 5,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "dim_device_manufacture",
+      "start": 5,
+      "end": 6,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "car_add_type_most",
+      "start": 6,
+      "end": 7,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "show_order_is_2arrival_latest",
+      "start": 7,
+      "end": 8,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "selecttirecount_most",
+      "start": 8,
+      "end": 9,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "show_order_is_2arrival_most",
+      "start": 9,
+      "end": 10,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "selecttirecount_latest",
+      "start": 10,
+      "end": 11,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "new_sitename",
+      "start": 11,
+      "end": 12,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "advsite",
+      "start": 12,
+      "end": 13,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "car_add_type_latest",
+      "start": 13,
+      "end": 14,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "platform_level",
+      "start": 14,
+      "end": 15,
+      "value": [
+        1
+      ]
+    },
+    {
+      "name": "tire_list_click_avg_index",
+      "start": 15,
+      "end": 16,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_pid_level",
+      "start": 16,
+      "end": 17,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_pid_is_lowprofit",
+      "start": 17,
+      "end": 18,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_list_click_most_pid_is_zg",
+      "start": 18,
+      "end": 19,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_level",
+      "start": 19,
+      "end": 20,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_is_lowprofit",
+      "start": 20,
+      "end": 21,
+      "value": [
+        0
+      ]
+    },
+    {
+      "name": "tire_order_page_most_pid_is_zg",
+      "start": 21,
+      "end": 22,
+      "value": [
+        0
+      ]
+    }
+  ]
+}
