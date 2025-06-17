@@ -3,7 +3,7 @@ import os
 import json
 import tensorflow as tf
 import tqdm
-
+from models.model import *
 from ltv_utils import *
 pd.set_option('display.float_format', '{:.4f}'.format)  # 保留10位小数，可调整
 import warnings
@@ -37,8 +37,8 @@ def parse_function(serialized_example):
 
 
 # load tf records
-group_2_features = read_feature_json_config('feature_config/feature_list.json')
-file_name = 'data/part-r-00000'
+group_2_features = read_feature_json_config('features/feature_list.json')
+file_name = 'data/loca_test_tf.tfrecords'
 data_path = file_name
 
 dataset = tf.data.TFRecordDataset(data_path)
@@ -53,3 +53,7 @@ user_dense_features = group_2_features['user_dense_features']
 user_sparse_features = group_2_features['user_sparse_features']
 
 process = Dense_Process_LOG_Layer('user_dense_features', 'user_dense_price_features', 'user_dense_duration_features')
+
+
+for batch in dataset.take(1):
+    print(process(batch))
