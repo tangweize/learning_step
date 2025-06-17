@@ -14,8 +14,8 @@ import json
 def send_filelist(msg_content, file_paths):
     subject = '实验结果' + (datetime.datetime.now().strftime('%Y-%m-%d:%H:%M'))
     # 发信方的信息：发信邮箱，QQ 邮箱授权码
-    from_addr = 'tangweize@tuhu.cn'
-    password = 'eYge4CSdjSY2F4Tj'
+    from_addr = 'tangweize'
+    password = '**************'
     # 收信方邮箱
     recievers = ['756648174@qq.com']
     # 发信服务器
