@@ -47,3 +47,9 @@ dataset = dataset.map(parse_function)
 dataset = dataset.prefetch(buffer_size=10000)
 dataset = dataset.batch(512)
 
+user_dense_price_features = group_2_features['user_dense_price_features']
+user_dense_duration_features = group_2_features['user_dense_duration_features']
+user_dense_features = group_2_features['user_dense_features']
+user_sparse_features = group_2_features['user_sparse_features']
+
+process = Dense_Process_LOG_Layer('user_dense_features', 'user_dense_price_features', 'user_dense_duration_features')
