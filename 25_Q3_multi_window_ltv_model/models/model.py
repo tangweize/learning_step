@@ -141,6 +141,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
     def train_step(self, train_data):
         inputs, label = train_data
+        print(label)
         with tf.GradientTape() as tape:
             predict = self(inputs)
 
@@ -190,7 +191,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
                 # 选出对应 head 的 pred 和 label
                 head_pred = tf.gather(y_pred, idxs)
-                head_true = tf.gather(y_true, idxs)  # 假设label[:, 0]是你想评估的目标
+                head_true = tf.gather(y_true, idxs)
 
                 hour_model_pred[head] += tf.reduce_sum(head_pred)
                 hour_model_true[head] += tf.reduce_sum(head_true)
