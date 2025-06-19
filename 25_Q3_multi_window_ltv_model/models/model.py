@@ -192,7 +192,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                     continue  # 该 head 在当前 batch 没有数据，跳过
 
                 # 选出对应 head 的 pred 和 label
-                head_pred = tf.gather(pred, idxs)
+                head_pred = tf.gather(y_pred, idxs)
                 head_true = tf.gather(y_true, idxs)  # 假设label[:, 0]是你想评估的目标
 
                 hour_model_pred[head] += tf.reduce_sum(head_pred)
