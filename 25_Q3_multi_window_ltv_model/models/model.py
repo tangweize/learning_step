@@ -20,12 +20,14 @@ class Dense_Process_LOG_Layer(layers.Layer):
         processed_dense_features = []
         for field, input_tensor in inputs.items():
             if field in self.dense_cnt_features:
-                input_cast = tf.maximum(input_tensor, 0)
+                input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
+                input_cast = tf.maximum(input_tensor, 0.0)
                 normalized_feature = tf.math.log1p(input_cast + 1) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
                 # temp_feature = tf.expand_dims(normalized_feature)
                 processed_dense_features.append(normalized_feature)
             elif field in self.dense_price_features or field in self.dense_duration_features:
-                input_cast = tf.maximum(input_tensor, 0)
+                input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
+                input_cast = tf.maximum(input_tensor, 0.0)
                 normalized_feature = tf.math.log1p(input_cast + 1) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
                 # temp_feature = tf.expand_dims(normalized_feature)
                 processed_dense_features.append(normalized_feature)
@@ -45,7 +47,7 @@ class Sparse_Process_Layer(layers.Layer):
 
         for feature in user_sparse_features:
             if feature in emb_features:
-                self.field2embedding[feature] = layers.Embedding(input_dim=50, output_dim=4)
+                self.field2embedding[feature] = layers.Embedding(input_dim=500, output_dim=4)
         self.concat_layer = layers.Concatenate()
 
     def call(self, inputs):
@@ -115,28 +117,44 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         self.hour2headnn = [ HEAD_DNN(head_units) for i in range(num_heads)]
         self.concat_layer = layers.Concatenate()
 
+    # def build(self, input_shape):
+    #     dummy_inputs = {
+    #         k: tf.keras.Input(shape=v, dtype=tf.float32)  # 注意这里直接用 v
+    #         for k, v in input_shape.items()
+    #     }
+    #     # self(dummy_inputs)  # 调用 call 构建所有子层
+    #     super().build(input_shape)
+
+
+
     def call(self, inputs):
         dense_tensor = self.process_dense_layer(inputs)
         emb_tesor = self.process_emb_layer(inputs)
 
-        sharebottom = layers.Concatenate()([dense_tensor, emb_tesor])
+        input_tensor = layers.Concatenate()([dense_tensor, emb_tesor])
 
-        outputs = [head(sharebottom) for head in self.hour2headnn]
+        sharebottom_out = self.sharebottom(input_tensor)
+
+        outputs = [head(sharebottom_out) for head in self.hour2headnn]
 
         hour_idx = -1
         for i, v in enumerate(self.sparse_features):
             if v == self.hour_flag:
                 hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis = 1) - 1, tf.int64)
                 hour_idx = tf.minimum(hour_idx, self.num_heads - 1)
+                hour_idx = tf.maximum(hour_idx, 0)
 
         outputs = self.concat_layer(outputs)
-        return tf.gather(outputs, hour_idx, axis = 1, batch_dims=1)
+        selected = tf.gather(outputs, hour_idx, axis=1, batch_dims=1)
+        selected = tf.expand_dims(selected, axis=1)  # 模拟 keep_dim=True 的效果
+        return selected
 
     def train_step(self, train_data):
         inputs, label = train_data
         with tf.GradientTape() as tape:
             predict = self(inputs)
-            losses = self.loss(label, label)
+
+            losses = self.loss(label, predict)
 
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(losses, trainable_vars)
@@ -144,3 +162,6 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         self.compiled_metrics.update_state(label, predict)
         results = {m.name: m.result() for m in self.metrics}
         return results
+
+    def predict(self, inputs, batch_size=None):
+        return super().predict(inputs, batch_size=batch_size)
