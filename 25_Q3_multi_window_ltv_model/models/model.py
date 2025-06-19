@@ -117,15 +117,6 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         self.hour2headnn = [ HEAD_DNN(head_units) for i in range(num_heads)]
         self.concat_layer = layers.Concatenate()
 
-    # def build(self, input_shape):
-    #     dummy_inputs = {
-    #         k: tf.keras.Input(shape=v, dtype=tf.float32)  # 注意这里直接用 v
-    #         for k, v in input_shape.items()
-    #     }
-    #     # self(dummy_inputs)  # 调用 call 构建所有子层
-    #     super().build(input_shape)
-
-
 
     def call(self, inputs):
         dense_tensor = self.process_dense_layer(inputs)
