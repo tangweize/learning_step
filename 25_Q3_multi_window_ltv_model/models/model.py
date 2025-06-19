@@ -178,9 +178,6 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
             else:
                 raise ValueError(f"Unsupported mode in evaluation: {mode}")
 
-
-
-
             for i, v in enumerate(self.sparse_features):
                 if v == self.hour_flag:
                     hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis = 1) - 1, tf.int64)
