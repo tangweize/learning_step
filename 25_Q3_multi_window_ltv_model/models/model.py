@@ -141,8 +141,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         for i, v in enumerate(self.sparse_features):
             if v == self.hour_flag:
                 hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis = 1) - 1, tf.int64)
-                hour_idx = tf.minimum(hour_idx, self.num_heads - 1)
-                hour_idx = tf.maximum(hour_idx, 0)
+                hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
 
         outputs = self.concat_layer(outputs)
         selected = tf.gather(outputs, hour_idx, axis=1, batch_dims=1)
@@ -165,3 +164,48 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
     def predict(self, inputs, batch_size=None):
         return super().predict(inputs, batch_size=batch_size)
+
+    def evaluate(self, test_dataset):
+
+        hour_model_pred = {k: 0 for k in range(self.num_heads)}
+        hour_model_true = {k: 0 for k in range(self.num_heads)}
+        mode = self.loss.mode
+
+        for batch in test_dataset:
+            inputs, y_true_packed = batch
+            pred = self(inputs)
+
+            hour_idx = None
+
+            if mode in ('delta', 'log_delta') :
+                y_pred = pred + y_true_packed[:, 1:2]  # shape (B, 1)
+                y_true = y_true_packed[:, 0]
+
+            elif mode in ['mse', 'mae', 'mape', 'log']:
+                y_pred = pred
+                y_true = y_true_packed[:, 0]
+            else:
+                raise ValueError(f"Unsupported mode in evaluation: {mode}")
+
+
+
+
+            for i, v in enumerate(self.sparse_features):
+                if v == self.hour_flag:
+                    hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis = 1) - 1, tf.int64)
+                    hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
+
+            for head in range(self.num_heads):
+                idxs = tf.where(tf.equal(hour_idx, head))[:, 0]
+                if tf.size(idxs) == 0:
+                    continue  # 该 head 在当前 batch 没有数据，跳过
+
+                # 选出对应 head 的 pred 和 label
+                head_pred = tf.gather(pred, idxs)
+                head_true = tf.gather(y_true, idxs)  # 假设label[:, 0]是你想评估的目标
+
+                hour_model_pred[head] += tf.reduce_sum(head_pred)
+                hour_model_true[head] += tf.reduce_sum(head_true)
+
+
+        return hour_model_pred, hour_model_true
