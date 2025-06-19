@@ -131,3 +131,16 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
         outputs = self.concat_layer(outputs)
         return tf.gather(outputs, hour_idx, axis = 1, batch_dims=1)
+
+    def train_step(self, train_data):
+        inputs, label = train_data
+        with tf.GradientTape() as tape:
+            predict = self(inputs)
+            losses = self.loss(label, label)
+
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(losses, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.compiled_metrics.update_state(label, predict)
+        results = {m.name: m.result() for m in self.metrics}
+        return results
