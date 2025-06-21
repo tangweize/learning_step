@@ -50,7 +50,6 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         elif mode == 'mse':
 
             y_true = y_true_packed[:, 0]
-            print(y_pred)
             return tf.reduce_mean(tf.square(y_true - y_pred))
 
         elif mode == 'mae':
