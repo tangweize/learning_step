@@ -14,12 +14,13 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
     def __init__(self, mode='delta', name=None):
         """
         支持模式：
-        - 'delta':    预测增量 LTV（7d - 1h）
-        - 'log':      预测 log(1 + 7d LTV)
-        - 'log_delta':预测 log(7d - 1h)
-        - 'mse':      普通均方误差
-        - 'mae':      平均绝对误差
-        - 'mape':     平均绝对百分比误差
+        - 'delta':         预测增量 LTV（7d - 1h）
+        - 'log':           预测 log(1 + 7d LTV)
+        - 'log_delta':     预测 log(7d - 1h)
+        - 'mse':           普通均方误差
+        - 'mae':           平均绝对误差
+        - 'mape':          平均绝对百分比误差
+        - 'binary':        二分类交叉熵（sigmoid + binary_crossentropy）
         """
         self.mode = mode.lower()
         if name is None:
@@ -48,7 +49,6 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
             return tf.reduce_mean(tf.square(tf.math.log(delta_true) - tf.math.log(delta_pred)))
 
         elif mode == 'mse':
-
             y_true = y_true_packed[:, 0]
             return tf.reduce_mean(tf.square(y_true - y_pred))
 
@@ -59,6 +59,12 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         elif mode == 'mape':
             y_true = y_true_packed[:, 0]
             return tf.reduce_mean(tf.abs((y_true - y_pred) / tf.maximum(y_true, 1e-5)))
+
+        elif mode == 'binary':
+            # 二分类场景，y_true 为 [B, 1]，y_pred 为 [B, 1] 的 logit 或概率
+            y_true = y_true_packed[:, 0]
+            y_pred = tf.squeeze(y_pred, axis=-1)  # 确保形状一致
+            return tf.reduce_mean(tf.keras.losses.binary_crossentropy(y_true, y_pred, from_logits=True))
 
         else:
             raise ValueError(f"Unsupported loss mode: {mode}")
