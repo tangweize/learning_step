@@ -208,13 +208,18 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                 hour_model_true[head].append(head_true)
 
         # 处理成 一维tensor
-        #
+        def safe_concat_and_maybe_squeeze(tensor_list):
+            out = tf.concat(tensor_list, axis=0)
+            if len(out.shape) == 2 and out.shape[1] == 1:
+                out = tf.squeeze(out, axis=1)
+            return out
+
         for head in range(self.num_heads):
             if len(hour_model_pred[head]) == 0:
                 continue
-            hour_model_pred[head] = tf.squeeze(tf.concat(hour_model_pred[head], axis = 0), axis = 1)
-            hour_model_true[head] = tf.squeeze(tf.concat(hour_model_true[head], axis = 0), axis = 1)
 
+            hour_model_pred[head] = safe_concat_and_maybe_squeeze(hour_model_pred[head])
+            hour_model_true[head] = safe_concat_and_maybe_squeeze(hour_model_true[head])
         return hour_model_pred, hour_model_true
     def evaluate_exp(self, test_dataset):
         # 计算各个头的期望的 bias
