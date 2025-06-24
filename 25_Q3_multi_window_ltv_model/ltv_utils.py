@@ -354,9 +354,9 @@ def get_trian_valid_test_dateset(parse_function, batch_size, train_path, valid_p
     valid_dataset = None
     test_dataset = None
     if valid_path:
-        valid_dataset = tfrecords_to_dataset(valid_path, parse_function)
+        valid_dataset = tfrecords_to_dataset(valid_path, parse_function, batch_size)
     if test_path:
-        test_dataset = tfrecords_to_dataset(test_path, parse_function)
+        test_dataset = tfrecords_to_dataset(test_path, parse_function, batch_size)
 
     return train_dataset, valid_dataset, test_dataset
 
