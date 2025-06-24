@@ -338,19 +338,19 @@ def read_feature_json_config(filename):
 
 
 import tensorflow as tf
-def tfrecords_to_dataset(path, parse_function):
+def tfrecords_to_dataset(path, parse_function, batch_size):
     dataset = tf.data.TFRecordDataset(path)
     dataset = dataset.map(parse_function)
 
     dataset = dataset.prefetch(buffer_size=10000)
-    dataset = dataset.batch(512)
+    dataset = dataset.batch(batch_size)
 
     return dataset
 
 
 
-def get_trian_valid_test_dateset(parse_function, train_path, valid_path = None, test_path = None ):
-    train_dataset = tfrecords_to_dataset(train_path, parse_function)
+def get_trian_valid_test_dateset(parse_function, batch_size, train_path, valid_path = None, test_path = None ):
+    train_dataset = tfrecords_to_dataset(train_path, parse_function, batch_size)
     valid_dataset = None
     test_dataset = None
     if valid_path:
