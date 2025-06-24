@@ -207,6 +207,12 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                 hour_model_pred[head].append(head_pred)
                 hour_model_true[head].append(head_true)
 
+        # 处理成 一维tensor
+
+        for head in range(self.num_heads):
+            hour_model_pred[head] = tf.concat(hour_model_pred[head], axis =  -1)
+            hour_model_true[head] = tf.concat(hour_model_true[head], axis =  -1)
+
 
         return hour_model_pred, hour_model_true
     def evaluate_exp(self, test_dataset):
