@@ -336,4 +336,30 @@ def read_feature_json_config(filename):
             group_2_features[i].append(feature['name'])
     return group_2_features
 
+
+import tensorflow as tf
+def tfrecords_to_dataset(path, parse_function):
+    dataset = tf.data.TFRecordDataset(path)
+    dataset = dataset.map(parse_function)
+
+    dataset = dataset.prefetch(buffer_size=10000)
+    dataset = dataset.batch(512)
+
+    return dataset
+
+
+
+def get_trian_valid_test_dateset(parse_function, train_path, valid_path = None, test_path = None ):
+    train_dataset = tfrecords_to_dataset(train_path, parse_function)
+    valid_dataset = None
+    test_dataset = None
+    if valid_path:
+        valid_dataset = tfrecords_to_dataset(valid_path, parse_function)
+    if test_path:
+        test_dataset = tfrecords_to_dataset(test_path, parse_function)
+
+    return train_dataset, valid_dataset, test_dataset
+
+
+
 # group_2_features = read_feature_json_config('feature_config/feature_list.json')
