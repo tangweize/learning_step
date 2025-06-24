@@ -287,7 +287,7 @@ class MMOE(keras.Model):
     def predict(self, inputs, batch_size=None):
         return super().predict(inputs, batch_size=batch_size)
 
-    def evaluate(self, test_dataset):
+    def evaluate_exp(self, test_dataset):
 
         hour_model_pred = {k: 0 for k in range(self.num_heads)}
         hour_model_true = {k: 0 for k in range(self.num_heads)}
