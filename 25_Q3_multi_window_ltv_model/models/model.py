@@ -6,7 +6,9 @@
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow as tf
-
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class Dense_Process_LOG_Layer(layers.Layer):
@@ -159,12 +161,13 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
     def predict(self, inputs, batch_size=None):
         return super().predict(inputs, batch_size=batch_size)
 
-    def evaluate_exp(self, test_dataset):
 
-        hour_model_pred = {k: 0 for k in range(self.num_heads)}
-        hour_model_true = {k: 0 for k in range(self.num_heads)}
+    # 存储 每条样本的 pred 和 true，并分别保存为各个head；
+    # 返回： pred:[],  true:[]
+    def predict_head_score(self, test_dataset):
+        hour_model_pred = {k: [] for k in range(self.num_heads)}
+        hour_model_true = {k: [] for k in range(self.num_heads)}
         mode = self.loss.mode
-
         for batch in test_dataset:
             inputs, y_true_packed = batch
             pred = self(inputs)
@@ -201,11 +204,83 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                 head_pred = tf.gather(y_pred, idxs)
                 head_true = tf.gather(y_true, idxs)
 
-                hour_model_pred[head] += tf.reduce_sum(head_pred)
-                hour_model_true[head] += tf.reduce_sum(head_true)
+                hour_model_pred[head].append(head_pred)
+                hour_model_true[head].append(head_true)
 
 
-        return {"pred sum: " : hour_model_pred, "true sum: ": hour_model_true}
+        return hour_model_pred, hour_model_true
+    def evaluate_exp(self, test_dataset):
+        # 计算各个头的期望的 bias
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        mape = {}
+        for head in head_pred.keys():
+            # 对每个head的所有结果 求和
+            head_pred[head] = tf.reduce_sum(head_pred[head]).numpy()
+            head_true[head] = tf.reduce_sum(head_true[head]).numpy()
+
+
+            pred = head_pred[head]
+            true = head_true[head]
+            mape[head] = (pred - true) / (true + 1.0)
+            mape[head] = round(mape[head], 2)
+
+
+        return {
+            'pred_sum': head_pred,
+            'true_sum': head_true,
+            'bias' : mape
+        }
+
+
+
+
+    def evaluate_rank(self, test_dataset):
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        rank_res = {}
+        for head in head_pred.keys():
+            head_name = f"{head + 1}_h rank_score"
+            pred = head_pred[head]
+            true = head_true[head]
+            rank_res[head_name] = self.calculate_area_under_gain_curve(pred, true, head_name)
+
+
+        return rank_res
+
+
+    def calculate_area_under_gain_curve(self, pred_list, true_list, head_name=""):
+        # 将零维张量列表转换为一维 NumPy 数组
+        pred = np.array([p.numpy() for p in pred_list])
+        true = np.array([t.numpy() for t in true_list])
+
+        # 创建 DataFrame
+        df = pd.DataFrame({'pred': pred, 'true': true})
+
+        # 根据预测值进行排序
+        df = df.sort_values(by='pred', ascending=False)
+
+        # 计算累积百分比
+        df['cumulative_percentage_customers'] = np.arange(1, len(df) + 1) / len(df)
+        df['cumulative_percentage_ltv'] = df['true'].cumsum() / df['true'].sum()
+
+        # 计算增益曲线下面积
+        area = np.trapz(df['cumulative_percentage_ltv'], df['cumulative_percentage_customers'])
+
+        # 绘制增益图
+        plt.figure(figsize=(10, 6))
+        plt.plot(df['cumulative_percentage_customers'], df['cumulative_percentage_ltv'], label="Gain Curve")
+        plt.xlabel('Cumulative Percentage of Customers')
+        plt.ylabel('Cumulative Percentage of Total LTV')
+        plt.title(f'{head_name} Gain Chart')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        return area
+
 
 
 class MMOE(keras.Model):
