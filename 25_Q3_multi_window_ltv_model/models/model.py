@@ -257,7 +257,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
             head_name = f"{head + 1}_h rank_score"
             pred = head_pred[head]
             true = head_true[head]
-            if pred:
+            if len(pred):
                 rank_res[head_name] = self.calculate_area_under_gain_curve(pred, true, head_name)
 
         return rank_res
