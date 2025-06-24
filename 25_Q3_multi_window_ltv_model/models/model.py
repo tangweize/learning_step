@@ -209,10 +209,9 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
         # 处理成 一维tensor
         #
-        # for head in range(self.num_heads):
-        #     hour_model_pred[head] = tf.concat(hour_model_pred[head], axis =  -1)
-        #     hour_model_true[head] = tf.concat(hour_model_true[head], axis =  -1)
-
+        for head in range(self.num_heads):
+            hour_model_pred[head] = tf.concat(hour_model_pred[head], axis = 0)
+            hour_model_true[head] = tf.concat(hour_model_true[head], axis = 0)
 
         return hour_model_pred, hour_model_true
     def evaluate_exp(self, test_dataset):
@@ -259,8 +258,8 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
     def calculate_area_under_gain_curve(self, pred_list, true_list, head_name=""):
         # 将零维张量列表转换为一维 NumPy 数组
-        pred = np.array([p.numpy() for p in pred_list])
-        true = np.array([t.numpy() for t in true_list])
+        pred = pred_list.numpy()
+        true = true_list.numpy()
 
         # 创建 DataFrame
         df = pd.DataFrame({'pred': pred, 'true': true})
