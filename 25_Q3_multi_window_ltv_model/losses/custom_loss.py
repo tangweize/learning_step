@@ -79,3 +79,45 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
             raise ValueError(f"Unsupported loss mode: {mode}")
 
         return self.normalize_loss(loss)
+
+
+
+class UnifiedLTVsimple(tf.keras.losses.Loss):
+    def __init__(self, mode='delta', normalize=False, name=None):
+        """
+        支持模式：
+        - 'delta':         预测增量 LTV（7d - 1h）
+        - 'log':           预测 log(1 + 7d LTV)
+        - 'log_delta':     预测 log(7d - 1h)
+        - 'mse':           普通均方误差
+        - 'mae':           平均绝对误差
+        - 'mape':          平均绝对百分比误差
+        - 'binary':        二分类交叉熵（sigmoid + binary_crossentropy）
+
+        :param normalize: 是否对 loss 进行归一化（loss / stop_gradient(loss)）
+        """
+        self.mode = mode.lower()
+        self.normalize = normalize
+        if name is None:
+            name = f"{self.mode}_ltv_loss"
+        super().__init__(name=name)
+
+    def normalize_loss(self, loss):
+        if self.normalize:
+            norm_factor = tf.stop_gradient(loss) + 1e-8  # 防止除零
+            return loss / norm_factor
+        return loss
+
+    def call(self, y_true_packed, y_pred):
+        mode = self.mode
+
+
+
+        if mode == 'mse':
+            y_true = y_true_packed
+            loss = tf.reduce_mean(tf.square(y_true - y_pred))
+
+        else:
+            raise ValueError(f"Unsupported loss mode: {mode}")
+
+        return self.normalize_loss(loss)
