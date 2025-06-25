@@ -262,7 +262,6 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
         return rank_res
 
-
     def calculate_area_under_gain_curve(self, pred_list, true_list, head_name=""):
         # 将零维张量列表转换为一维 NumPy 数组
         pred = pred_list.numpy()
@@ -271,27 +270,40 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         # 创建 DataFrame
         df = pd.DataFrame({'pred': pred, 'true': true})
 
-        # 根据预测值进行排序
-        df = df.sort_values(by='pred', ascending=False)
+        # 【1】预测值排序的增益曲线
+        df_pred_sorted = df.sort_values(by='pred', ascending=False).copy()
+        df_pred_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_pred_sorted) + 1) / len(df_pred_sorted)
+        df_pred_sorted['cumulative_percentage_ltv'] = df_pred_sorted['true'].cumsum() / df_pred_sorted['true'].sum()
+        area_pred = np.trapz(df_pred_sorted['cumulative_percentage_ltv'],
+                             df_pred_sorted['cumulative_percentage_customers'])
 
-        # 计算累积百分比
-        df['cumulative_percentage_customers'] = np.arange(1, len(df) + 1) / len(df)
-        df['cumulative_percentage_ltv'] = df['true'].cumsum() / df['true'].sum()
+        # 【2】真实值排序的理想增益曲线（Ground Truth 理想线）
+        df_true_sorted = df.sort_values(by='true', ascending=False).copy()
+        df_true_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_true_sorted) + 1) / len(df_true_sorted)
+        df_true_sorted['cumulative_percentage_ltv'] = df_true_sorted['true'].cumsum() / df_true_sorted['true'].sum()
+        area_true = np.trapz(df_true_sorted['cumulative_percentage_ltv'],
+                             df_true_sorted['cumulative_percentage_customers'])
 
-        # 计算增益曲线下面积
-        area = np.trapz(df['cumulative_percentage_ltv'], df['cumulative_percentage_customers'])
-
-        # 绘制增益图
+        # 【3】绘图
         plt.figure(figsize=(10, 6))
-        plt.plot(df['cumulative_percentage_customers'], df['cumulative_percentage_ltv'], label="Gain Curve")
+        plt.plot(df_pred_sorted['cumulative_percentage_customers'],
+                 df_pred_sorted['cumulative_percentage_ltv'],
+                 label="Gain Curve (Predicted)", linewidth=2)
+        plt.plot(df_true_sorted['cumulative_percentage_customers'],
+                 df_true_sorted['cumulative_percentage_ltv'],
+                 label="Ideal Gain Curve (Ground Truth Sorted)",
+                 linestyle='--', color='black', linewidth=2)
+        plt.plot([0, 1], [0, 1], linestyle=':', color='gray', label="Random Model")
+
         plt.xlabel('Cumulative Percentage of Customers')
         plt.ylabel('Cumulative Percentage of Total LTV')
         plt.title(f'{head_name} Gain Chart')
         plt.legend()
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
 
-        return area
+        return area_pred
 
 
 
