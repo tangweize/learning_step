@@ -45,9 +45,11 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
             loss = tf.reduce_mean(tf.square(delta_true - y_pred))
 
         elif mode == 'log':
-            y_true_log = tf.math.log1p(y_true_packed[:, 0])
-            y_pred_log = tf.math.log1p(y_pred)
-            loss = tf.reduce_mean(tf.square(y_true_log - y_pred_log))
+            # 小于0的y_true先置为0，然后再 log1p
+            y_true_clipped = tf.maximum(y_true_packed[:, 0], 0.0)
+            y_true_log = tf.math.log1p(y_true_clipped)
+
+            loss = tf.reduce_mean(tf.square(y_true_log - y_pred))
 
         elif mode == 'log_delta':
             y_true = y_true_packed[:, 0]
