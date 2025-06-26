@@ -36,37 +36,6 @@ class Dense_Process_LOG_Layer(layers.Layer):
         return self.concat_layer(processed_dense_features)
 
 
-
-class Dense_Process_LOG_NORMAL_Layer(tf.keras.layers.Layer):
-    def __init__(self, dense_cnt_features, dense_price_features, dense_duration_features):
-        super().__init__()
-        self.dense_cnt_features = dense_cnt_features
-        self.dense_price_features = dense_price_features
-        self.dense_duration_features = dense_duration_features
-        self.concat_layer = tf.keras.layers.Concatenate()
-        self.bn_layers = {}  # 字段 -> BN层
-
-    def build(self, input_shape):
-        for field in self.dense_cnt_features + self.dense_price_features + self.dense_duration_features:
-            self.bn_layers[field] = tf.keras.layers.BatchNormalization(name=f"{field}_bn")
-
-    def call(self, inputs, training=False):
-        processed_dense_features = []
-        for field, input_tensor in inputs.items():
-            x = tf.cast(input_tensor, tf.float32)
-            x = tf.maximum(x, 0.0)
-
-            if field in self.dense_cnt_features:
-                x = tf.math.log1p(x + 1) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
-            elif field in self.dense_price_features or field in self.dense_duration_features:
-                x = tf.math.log1p(x + 1) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
-
-            x = self.bn_layers[field](x, training=training)  # 注意加 training 标志
-            processed_dense_features.append(x)
-
-        return self.concat_layer(processed_dense_features)
-
-
 import tensorflow as tf
 from tensorflow.keras import layers
 
