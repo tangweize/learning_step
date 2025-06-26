@@ -37,7 +37,7 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
 
     def call(self, y_true_packed, y_pred):
         mode = self.mode
-
+        print(mode)
         if mode == 'delta':
             y_true = y_true_packed[:, 0]
             ltv_1h = y_true_packed[:, 1]
@@ -60,10 +60,12 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
 
         elif mode == 'mse':
             y_true = y_true_packed[:, 0]
+            print(y_true, y_pred)
             loss = tf.reduce_mean(tf.square(y_true - y_pred))
 
         elif mode == 'mae':
             y_true = y_true_packed[:, 0]
+
             loss = tf.reduce_mean(tf.abs(y_true - y_pred))
 
         elif mode == 'mape':
@@ -79,7 +81,6 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
             raise ValueError(f"Unsupported loss mode: {mode}")
 
         return self.normalize_loss(loss)
-
 
 
 class UnifiedLTVsimple(tf.keras.losses.Loss):
@@ -111,12 +112,15 @@ class UnifiedLTVsimple(tf.keras.losses.Loss):
     def call(self, y_true_packed, y_pred):
         mode = self.mode
 
-
-
         if mode == 'mse':
             y_true = y_true_packed
             loss = tf.reduce_mean(tf.square(y_true - y_pred))
+        elif mode == 'log':
+            # 小于0的y_true先置为0，然后再 log1p
+            y_true_clipped = tf.maximum(y_true_packed, 0.0)
+            y_true_log = tf.math.log1p(y_true_clipped)
 
+            loss = tf.reduce_mean(tf.square(y_true_log - y_pred))
         else:
             raise ValueError(f"Unsupported loss mode: {mode}")
 
