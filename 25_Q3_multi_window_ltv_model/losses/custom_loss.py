@@ -58,7 +58,7 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
         if mode == 'delta':
             ltv_1h = tf.reshape(y_true_packed[:, 1], (-1, 1))  # Reshape to (-1, 1)
-            delta_true = y_true - ltv_1h
+            delta_true = tf.maximum(y_true - ltv_1h, 0.0)
             loss = tf.reduce_mean(tf.square(delta_true - y_pred))
 
         elif mode == 'log':
