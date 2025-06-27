@@ -67,6 +67,28 @@ class Dense_Process_LOG_NORMAL_Layer(tf.keras.layers.Layer):
         return self.concat_layer(processed_dense_features)
 
 
+# 不做log处理，只加归一化。
+class Dense_NO_Process_Layer(layers.Layer):
+    def __init__(self, dense_cnt_features, dense_price_features, dense_duration_features):
+        super().__init__()
+        self.dense_cnt_features = dense_cnt_features
+        self.dense_price_features = dense_price_features
+        self.dense_duration_features = dense_duration_features
+        self.concat_layer = layers.Concatenate()
+    def call(self, inputs):
+        processed_dense_features = []
+        for field, input_tensor in inputs.items():
+            if field in self.dense_cnt_features:
+                input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
+
+                processed_dense_features.append(input_tensor)
+            elif field in self.dense_price_features or field in self.dense_duration_features:
+                input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
+                processed_dense_features.append(input_tensor)
+        return self.concat_layer(processed_dense_features)
+
+
+
 import tensorflow as tf
 from tensorflow.keras import layers
 
@@ -142,10 +164,18 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                  emb_features,
                  Dense_feature_Layer = Dense_Process_LOG_Layer,
                  Sparse_feature_Layer = Sparse_Process_Layer,
-                 hour_flag = 'request_hour_diff'):
+                 hour_flag = 'request_hour_diff',
+                 is_log = True):
         super().__init__()
         self.num_heads = num_heads
-        self.process_dense_layer = Dense_feature_Layer(dense_cnt_feature_name, dense_price_feature_name, dense_duration_feature_name)
+
+        # 是否选择 log 处理特征
+        if is_log:
+            self.process_dense_layer = Dense_feature_Layer(dense_cnt_feature_name, dense_price_feature_name, dense_duration_feature_name)
+        else:
+            self.process_dense_layer = Dense_NO_Process_Layer(dense_cnt_feature_name, dense_price_feature_name,
+                                                           dense_duration_feature_name)
+
         self.process_emb_layer = Sparse_feature_Layer(sparse_group_name, user_sparse_features, emb_features)
         self.sparse_features = user_sparse_features
         self.sparse_group_name = sparse_group_name
@@ -181,10 +211,8 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
     def train_step(self, train_data):
         inputs, label = train_data
-        print(label)
         with tf.GradientTape() as tape:
             predict = self(inputs)
-
             losses = self.loss(label, predict)
 
         trainable_vars = self.trainable_variables
