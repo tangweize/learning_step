@@ -41,6 +41,7 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         """
         self.mode = mode.lower()
         self.normalize = normalize
+        self.p = 1.5
         if name is None:
             name = f"{self.mode}_ltv_loss"
         super().__init__(name=name)
@@ -84,6 +85,7 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
 
 
         elif mode == 'tweedie':
+
             term2 = tf.math.pow(y_pred, 2 - self.p) / (2 - self.p)
             term1 = y_true * tf.math.pow(y_pred, 1 - self.p) / (1 - self.p)
             temp_loss = (term2 - term1)
