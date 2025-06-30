@@ -87,6 +87,8 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         elif mode == 'tweedie':
 
             term2 = tf.math.pow(y_pred, 2 - self.p) / (2 - self.p)
+            tf.print(y_pred)
+            tf.print(y_true)
             term1 = y_true * tf.math.pow(y_pred, 1 - self.p) / (1 - self.p)
             temp_loss = (term2 - term1)
             # debug
