@@ -238,11 +238,11 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
             hour_idx = None
 
-            if mode in ('delta', 'log_delta') :
+            if mode in ('delta', 'log_delta', 'delta_tweedie') :
                 y_pred = pred + tf.reshape(y_true_packed[:, 1], (-1, 1))  # shape (B, 1)
                 y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
 
-            elif mode in ['mse', 'mae', 'mape', 'log']:
+            elif mode in ['mse', 'mae', 'mape', 'log', 'tweedie']:
                 y_pred = pred
                 y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
             elif mode in ['binary']:
