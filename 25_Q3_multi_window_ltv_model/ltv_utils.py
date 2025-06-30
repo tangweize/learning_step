@@ -362,4 +362,51 @@ def get_trian_valid_test_dateset(parse_function, batch_size, train_path, valid_p
 
 
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+def calculate_area_under_gain_curve(pred_list, true_list, head_name=""):
+    # 将零维张量列表转换为一维 NumPy 数组
+    pred = pred_list.numpy()
+    true = true_list.numpy()
+
+    # 创建 DataFrame
+    df = pd.DataFrame({'pred': pred, 'true': true})
+
+    # 【1】预测值排序的增益曲线
+    df_pred_sorted = df.sort_values(by='pred', ascending=False).copy()
+    df_pred_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_pred_sorted) + 1) / len(df_pred_sorted)
+    df_pred_sorted['cumulative_percentage_ltv'] = df_pred_sorted['true'].cumsum() / df_pred_sorted['true'].sum()
+    area_pred = np.trapz(df_pred_sorted['cumulative_percentage_ltv'],
+                         df_pred_sorted['cumulative_percentage_customers'])
+
+    # 【2】真实值排序的理想增益曲线（Ground Truth 理想线）
+    df_true_sorted = df.sort_values(by='true', ascending=False).copy()
+    df_true_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_true_sorted) + 1) / len(df_true_sorted)
+    df_true_sorted['cumulative_percentage_ltv'] = df_true_sorted['true'].cumsum() / df_true_sorted['true'].sum()
+    area_true = np.trapz(df_true_sorted['cumulative_percentage_ltv'],
+                         df_true_sorted['cumulative_percentage_customers'])
+
+    # 【3】绘图
+    plt.figure(figsize=(10, 6))
+    plt.plot(df_pred_sorted['cumulative_percentage_customers'],
+             df_pred_sorted['cumulative_percentage_ltv'],
+             label="Gain Curve (Predicted)", linewidth=2)
+    plt.plot(df_true_sorted['cumulative_percentage_customers'],
+             df_true_sorted['cumulative_percentage_ltv'],
+             label="Ideal Gain Curve (Ground Truth Sorted)",
+             linestyle='--', color='black', linewidth=2)
+    plt.plot([0, 1], [0, 1], linestyle=':', color='gray', label="Random Model")
+
+    plt.xlabel('Cumulative Percentage of Customers')
+    plt.ylabel('Cumulative Percentage of Total LTV')
+    plt.title(f'{head_name} Gain Chart')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return area_pred
+
+
 # group_2_features = read_feature_json_config('feature_config/feature_list.json')
