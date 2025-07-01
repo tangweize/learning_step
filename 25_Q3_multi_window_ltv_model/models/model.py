@@ -232,7 +232,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         with tf.GradientTape() as tape:
             predict = self(inputs)
             losses = self.loss(label, predict)
-
+            # tf.print("loss:",losses)
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(losses, trainable_vars)
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
