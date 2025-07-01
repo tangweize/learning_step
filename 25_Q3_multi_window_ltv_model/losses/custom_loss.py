@@ -86,16 +86,18 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
 
         elif mode == 'tweedie':
 
+            y_pred = tf.clip_by_value(y_pred, clip_value_min=1e-6, clip_value_max=1e6)
             term2 = tf.math.pow(y_pred, 2 - self.p) / (2 - self.p)
-            tf.print(y_pred)
-            tf.print(y_true)
+            # tf.print(y_pred)
+            # tf.print(y_true)
             term1 = y_true * tf.math.pow(y_pred, 1 - self.p) / (1 - self.p)
             temp_loss = (term2 - term1)
             # debug
-            tf.print(temp_loss)
+            # tf.print(temp_loss)
             loss = tf.reduce_mean(temp_loss)
 
         elif mode == 'delta_tweedie':
+            y_pred = tf.clip_by_value(y_pred, clip_value_min=1e-6, clip_value_max=1e6)
             ltv_1h = tf.reshape(y_true_packed[:, 1], (-1, 1))  # Reshape to (-1, 1)
             y_true = tf.maximum(y_true - ltv_1h, 0)
             term2 = tf.math.pow(y_pred, 2 - self.p) / (2 - self.p)
