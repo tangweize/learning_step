@@ -140,15 +140,29 @@ class HEAD_DNN(layers.Layer):
     def call(self, x):
         return self.dnn(x)
 
-class DNN(layers.Layer):
-    def __init__(self, units, activation = 'relu'):
-        super().__init__()
-        self.dnn = keras.Sequential([
-            layers.Dense(unit, activation= activation) for unit in units
-        ])
 
-    def call(self, x):
-        return self.dnn(x)
+from tensorflow.keras import layers, Sequential
+class DNN(layers.Layer):
+    def __init__(self, units, activation='relu', use_bn=False, dropout_rate=0.0):
+        """
+        :param units: List[int]，每层的神经元数量
+        :param activation: 激活函数，比如 'relu'
+        :param use_bn: 是否使用 BatchNormalization
+        :param dropout_rate: Dropout 比例（0 表示不使用）
+        """
+        super().__init__()
+        self.model = Sequential()
+        for i, unit in enumerate(units):
+            self.model.add(layers.Dense(unit, activation=None))  # activation 单独加，避免 BN 影响
+            if use_bn:
+                self.model.add(layers.BatchNormalization())
+            self.model.add(layers.Activation(activation))
+            if dropout_rate > 0.0:
+                self.model.add(layers.Dropout(dropout_rate))
+
+    def call(self, inputs, training=None):
+        return self.model(inputs, training=training)
+
 
 # 正式模型
 class MULTI_HEAD_LTV_MODEL(keras.Model):
@@ -165,23 +179,27 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
                  Dense_feature_Layer = Dense_Process_LOG_Layer,
                  Sparse_feature_Layer = Sparse_Process_Layer,
                  hour_flag = 'request_hour_diff',
-                 is_log = True):
+                 dnn_param = {"use_bn":False, "drop_out":0.0 }
+                 ):
         super().__init__()
         self.num_heads = num_heads
 
-        # 是否选择 log 处理特征
-        if is_log:
-            self.process_dense_layer = Dense_feature_Layer(dense_cnt_feature_name, dense_price_feature_name, dense_duration_feature_name)
-        else:
-            self.process_dense_layer = Dense_NO_Process_Layer(dense_cnt_feature_name, dense_price_feature_name,
-                                                           dense_duration_feature_name)
+
+        self.process_dense_layer = Dense_feature_Layer(dense_cnt_feature_name, dense_price_feature_name, dense_duration_feature_name)
+
+        # 配置dnn 的参数， 是否加bn， 是否 加 dropout
+        self.dnn_params = dnn_param
+        is_use_bn = self.dnn_params["use_bn"]
+        dropout_rate = self.dnn_params["drop_out"]
+
 
         self.process_emb_layer = Sparse_feature_Layer(sparse_group_name, user_sparse_features, emb_features)
         self.sparse_features = user_sparse_features
         self.sparse_group_name = sparse_group_name
         self.hour_flag = hour_flag
 
-        self.sharebottom = DNN(units)
+
+        self.sharebottom = DNN(units, use_bn = is_use_bn, dropout_rate = dropout_rate )
         self.hour2headnn = [ HEAD_DNN(head_units) for i in range(self.num_heads)]
         self.concat_layer = layers.Concatenate()
         self.dense_bn = tf.keras.layers.BatchNormalization()
@@ -490,7 +508,6 @@ class MMOE(keras.Model):
                 hour_model_true[head] += tf.reduce_sum(head_true)
 
         return hour_model_pred, hour_model_true
-
 
 """
 demo model 之前用keras 不做任何处理效果都不差。
