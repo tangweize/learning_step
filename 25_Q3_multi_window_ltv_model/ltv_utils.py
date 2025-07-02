@@ -414,7 +414,7 @@ import json
 import tensorflow as tf
 import tqdm
 
-def create_hesitate_tf_dataset(dataset):
+def create_hesitate_tf_dataset(dataset, MODEL_HOUR = 0):
     sample_batch = next(iter(dataset))
     sample_data = {k: v for k, v in sample_batch.items() if k not in ['b2_sale_amt_7d', 'total_pay_amount1']}
 
@@ -437,7 +437,7 @@ def create_hesitate_tf_dataset(dataset):
             # 构建 install_order_diff ∈ [0, 60] 的布尔 mask
             install_mask = tf.logical_or(
                 install_order_diff < 0,
-                install_order_diff > 60
+                install_order_diff > 60 * (MODEL_HOUR + 1)
             )
             combined_mask = tf.logical_and(hour_mask, install_mask)
             
@@ -465,4 +465,3 @@ def create_hesitate_tf_dataset(dataset):
     )
 
     return tf.data.Dataset.from_generator(generator, output_signature=output_signature)
-# group_2_features = read_feature_json_config('feature_config/feature_list.json')
