@@ -330,7 +330,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
 
 
-    def evaluate_rank(self, test_dataset):
+    def evaluate_rank(self, test_dataset, is_plot = True ):
 
         head_pred, head_true = self.predict_head_score(test_dataset)
 
@@ -340,11 +340,11 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
             pred = head_pred[head]
             true = head_true[head]
             if len(pred):
-                rank_res[head_name] = round(self.calculate_area_under_gain_curve(pred, true, head_name), 4)
+                rank_res[head_name] = round(self.calculate_area_under_gain_curve(pred, true, head_name, is_plot), 4)
 
         return rank_res
 
-    def calculate_area_under_gain_curve(self, pred_list, true_list, head_name=""):
+    def calculate_area_under_gain_curve(self, pred_list, true_list, head_name="", is_plot = True):
         # 将零维张量列表转换为一维 NumPy 数组
         pred = pred_list.numpy()
         true = true_list.numpy()
@@ -359,33 +359,88 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         area_pred = np.trapz(df_pred_sorted['cumulative_percentage_ltv'],
                              df_pred_sorted['cumulative_percentage_customers'])
 
-        # 【2】真实值排序的理想增益曲线（Ground Truth 理想线）
-        df_true_sorted = df.sort_values(by='true', ascending=False).copy()
-        df_true_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_true_sorted) + 1) / len(df_true_sorted)
-        df_true_sorted['cumulative_percentage_ltv'] = df_true_sorted['true'].cumsum() / df_true_sorted['true'].sum()
-        area_true = np.trapz(df_true_sorted['cumulative_percentage_ltv'],
-                             df_true_sorted['cumulative_percentage_customers'])
+        if is_plot:
+            # 【2】真实值排序的理想增益曲线（Ground Truth 理想线）
+            df_true_sorted = df.sort_values(by='true', ascending=False).copy()
+            df_true_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_true_sorted) + 1) / len(df_true_sorted)
+            df_true_sorted['cumulative_percentage_ltv'] = df_true_sorted['true'].cumsum() / df_true_sorted['true'].sum()
+            area_true = np.trapz(df_true_sorted['cumulative_percentage_ltv'],
+                                 df_true_sorted['cumulative_percentage_customers'])
 
-        # 【3】绘图
+            # 【3】绘图
+            plt.figure(figsize=(10, 6))
+            plt.plot(df_pred_sorted['cumulative_percentage_customers'],
+                     df_pred_sorted['cumulative_percentage_ltv'],
+                     label="Gain Curve (Predicted)", linewidth=2)
+            plt.plot(df_true_sorted['cumulative_percentage_customers'],
+                     df_true_sorted['cumulative_percentage_ltv'],
+                     label="Ideal Gain Curve (Ground Truth Sorted)",
+                     linestyle='--', color='black', linewidth=2)
+            plt.plot([0, 1], [0, 1], linestyle=':', color='gray', label="Random Model")
+
+            plt.xlabel('Cumulative Percentage of Customers')
+            plt.ylabel('Cumulative Percentage of Total LTV')
+            plt.title(f'{head_name} Gain Chart')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.show()
+
+        return area_pred
+
+
+    def evaluate_budget_exp(self, test_dataset, is_plot = True ):
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        rank_res = {}
+        for head in head_pred.keys():
+            head_name = f"{head + 1}_h rank_score"
+            pred = head_pred[head]
+            true = head_true[head]
+            if len(pred):
+                self.evaluate_ltv_bucket_chart(pred, true, head_name)
+
+        return -1
+
+
+    def evaluate_ltv_bucket_chart(self, pred_list, true_list, head_name=""):
+        # 将零维张量列表转换为一维 NumPy 数组
+        pred = pred_list.numpy()
+        true = true_list.numpy()
+
+        # 创建 DataFrame
+        df = pd.DataFrame({'pred': pred, 'true': true})
+
+        # 分成10分位桶（基于预测值）
+        df['bucket'] = pd.qcut(df['pred'], q=10, labels=False, duplicates='drop')
+
+        # 每桶计算真实值和预测值的均值
+        bucket_stats = df.groupby('bucket').agg({
+            'true': 'mean',
+            'pred': 'mean'
+        }).rename(columns={'true': 'True LTV', 'pred': 'Predicted LTV'})
+
+        # 可视化
+        import matplotlib.pyplot as plt
+        import numpy as np
+
         plt.figure(figsize=(10, 6))
-        plt.plot(df_pred_sorted['cumulative_percentage_customers'],
-                 df_pred_sorted['cumulative_percentage_ltv'],
-                 label="Gain Curve (Predicted)", linewidth=2)
-        plt.plot(df_true_sorted['cumulative_percentage_customers'],
-                 df_true_sorted['cumulative_percentage_ltv'],
-                 label="Ideal Gain Curve (Ground Truth Sorted)",
-                 linestyle='--', color='black', linewidth=2)
-        plt.plot([0, 1], [0, 1], linestyle=':', color='gray', label="Random Model")
+        x = np.arange(len(bucket_stats))
+        width = 0.35
 
-        plt.xlabel('Cumulative Percentage of Customers')
-        plt.ylabel('Cumulative Percentage of Total LTV')
-        plt.title(f'{head_name} Gain Chart')
+        plt.bar(x - width/2, bucket_stats['True LTV'], width, label='True LTV')
+        plt.bar(x + width/2, bucket_stats['Predicted LTV'], width, label='Predicted LTV')
+
+        plt.xlabel('Decile Buckets (by Prediction)')
+        plt.ylabel('Mean LTV')
+        plt.title(f'LTV Decile Chart - {head_name}')
+        plt.xticks(x, [f'Q{i+1}' for i in x])
         plt.legend()
-        plt.grid(True)
+        plt.grid(True, axis='y', linestyle='--', alpha=0.5)
         plt.tight_layout()
         plt.show()
 
-        return area_pred
 
 
 # MMOE
