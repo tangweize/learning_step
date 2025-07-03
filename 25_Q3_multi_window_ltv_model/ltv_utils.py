@@ -465,3 +465,52 @@ def create_hesitate_tf_dataset(dataset, MODEL_HOUR = 0):
     )
 
     return tf.data.Dataset.from_generator(generator, output_signature=output_signature)
+
+# 限定日期和渠道
+def create_date_tf_dataset(dataset, channel='今日头条2.0', install_date_filter='2025-06-26'):
+    sample_batch = next(iter(dataset))
+    sample_data = {k: v for k, v in sample_batch.items() if k not in ['b2_sale_amt_7d', 'total_pay_amount1']}
+
+    def generator():
+        for batch in dataset:
+            hour = tf.cast(tf.gather(batch['user_sparse_features'], indices=0, axis=1) - 1, tf.int64)
+            b2_7d = tf.cast(tf.reshape(batch.pop('b2_sale_amt_7d'), (-1, 1)), tf.float32)
+            b2_7d = tf.maximum(b2_7d, 0.0)
+
+            total_amt_1h = tf.reshape(batch.pop('total_pay_amount1'), (-1, 1))
+
+            install_date = tf.reshape(batch['install_date'], (-1, 1))  # shape: (batch_size, 1)
+
+            channel1 = tf.reshape(batch['channel1'], (-1, 1))
+
+            # 1. channel1 == channel
+            hour_mask = tf.equal(channel1, channel)
+            hour_mask = tf.reshape(hour_mask, (-1, 1))  # shape: (batch_size, 1)
+
+            # 2. install_date == 指定日期
+            install_mask = tf.equal(install_date, tf.constant(install_date_filter, dtype=tf.string))
+
+            # 3. 联合 mask
+            combined_mask = tf.logical_and(hour_mask, install_mask)
+
+            # combined_mask =  install_mask
+            # 获取满足条件的样本索引
+            selected_indices = tf.where(combined_mask)[:, 0]
+
+            # 筛选样本
+            batch = {k: tf.gather(v, selected_indices, axis=0) for k, v in batch.items()}
+            b2_7d = tf.gather(b2_7d, selected_indices, axis=0)
+            total_amt_1h = tf.gather(total_amt_1h, selected_indices, axis=0)
+
+            y_true_packed = tf.concat([b2_7d, total_amt_1h], axis=1)
+            yield batch, y_true_packed
+
+    output_signature = (
+        {
+            name: tf.TensorSpec(shape=(None,) + v.shape[1:], dtype=v.dtype)
+            for name, v in sample_data.items()
+        },
+        tf.TensorSpec(shape=(None, 2), dtype=tf.float32)
+    )
+
+    return tf.data.Dataset.from_generator(generator, output_signature=output_signature)
