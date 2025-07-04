@@ -26,7 +26,7 @@ class MSELTVLoss(tf.keras.losses.Loss):
 
 
 class UnifiedLTVLoss(tf.keras.losses.Loss):
-    def __init__(self, mode='delta', normalize=False, name=None):
+    def __init__(self, mode='delta', normalize=False, name=None, regular = 0.01):
         """
         支持模式：
         - 'delta':         预测增量 LTV（7d - 1h）
@@ -41,6 +41,7 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         """
         self.mode = mode.lower()
         self.normalize = normalize
+        self.regular = regular
         self.p = 1.5
         if name is None:
             name = f"{self.mode}_ltv_loss"
@@ -76,6 +77,9 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
 
         elif mode == 'mse':
             loss = tf.reduce_mean(tf.square(y_true - y_pred))
+
+        elif mode == 'mse_regular':
+            loss = tf.reduce_mean(tf.square(y_true - y_pred)) + self.regular * tf.abs(tf.reduce_mean(y_pred) - tf.reduce_mean(y_true))
 
         elif mode == 'mae':
             loss = tf.reduce_mean(tf.abs(y_true - y_pred))
