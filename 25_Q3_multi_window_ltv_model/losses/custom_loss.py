@@ -78,8 +78,10 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         elif mode == 'mse':
             loss = tf.reduce_mean(tf.square(y_true - y_pred))
 
-        elif mode == 'mse_regular':
-            loss = tf.reduce_mean(tf.square(y_true - y_pred)) + self.regular * tf.abs(tf.reduce_mean(y_pred) - tf.reduce_mean(y_true))
+        elif mode == 'delta_regular':
+            ltv_1h = tf.reshape(y_true_packed[:, 1], (-1, 1))  # Reshape to (-1, 1)
+            delta_true = tf.maximum(y_true - ltv_1h, 0.0)
+            loss = tf.reduce_mean(tf.square(delta_true - y_pred)) + self.regular * tf.abs(tf.reduce_mean(y_pred) - tf.reduce_mean(delta_true))
 
         elif mode == 'mae':
             loss = tf.reduce_mean(tf.abs(y_true - y_pred))
