@@ -89,6 +89,12 @@ class UnifiedLTVLoss(tf.keras.losses.Loss):
         elif mode == 'mape':
             loss = tf.reduce_mean(tf.abs((y_true - y_pred) / tf.maximum(y_true, 1e-5)))
 
+        elif mode == 'delta_mape':
+            ltv_1h = tf.reshape(y_true_packed[:, 1], (-1, 1))
+            delta_true = tf.maximum(y_true - ltv_1h, 1e-5)
+            loss = tf.reduce_mean(tf.abs((delta_true - y_pred) / delta_true))
+
+
 
         elif mode == 'tweedie':
 
