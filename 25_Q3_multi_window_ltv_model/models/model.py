@@ -256,7 +256,7 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 
             hour_idx = None
 
-            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular') :
+            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular')  or 'delta' in mode :
                 y_pred = pred + tf.reshape(y_true_packed[:, 1], (-1, 1))  # shape (B, 1)
                 y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
 
@@ -535,7 +535,7 @@ class MMOE(keras.Model):
 
             hour_idx = None
 
-            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular') :
+            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular')  or 'delta' in mode :
                 y_pred = pred + tf.reshape(y_true_packed[:, 1], (-1, 1))  # shape (B, 1)
                 y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
 
@@ -673,7 +673,7 @@ class Single_HEAD_LTV_MODEL(keras.Model):
 
             hour_idx = None
 
-            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular') :
+            if mode in ('delta', 'log_delta', 'delta_tweedie', 'delta_regular') or 'delta' in mode :
                 y_pred = pred + tf.reshape(y_true_packed[:, 1], (-1, 1))  # shape (B, 1)
                 y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
 
