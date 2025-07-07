@@ -448,56 +448,6 @@ import tensorflow as tf
 import numpy as np
 
 
-class MultiHeadCalibratedLTVModel(MULTI_HEAD_LTV_MODEL):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.head_isoreg = {}  # 每个 head 的保序回归器 {0: IR, 1: IR, ..., n-1: IR}
-
-    def set_calibrators(self, isoreg_dict):
-        """
-        设置每个 head 的保序回归器
-        :param isoreg_dict: dict<int, IsotonicRegression>
-        """
-        self.head_isoreg = isoreg_dict
-
-    def predict(self, inputs, batch_size=None):
-        raw_pred = super().predict(inputs, batch_size=batch_size)  # shape: (B, 1)
-
-        # 获取所属 head
-        hour_idx = None
-        for i, v in enumerate(self.sparse_features):
-            if v == self.hour_flag:
-                hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis=1) - 1, tf.int32)
-                hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
-
-        # shape: (B,)
-        raw_pred = tf.squeeze(raw_pred, axis=1)
-
-        # 分别对每个 head 的样本做校准
-        calibrated_list = []
-        for h in range(self.num_heads):
-            isoreg = self.head_isoreg.get(h, None)
-            idx = tf.where(tf.equal(hour_idx, h))[:, 0]
-
-            if tf.size(idx) == 0 or isoreg is None:
-                # 没有样本或该 head 没有校准器，直接返回原始预测
-                continue
-
-            pred_h = tf.gather(raw_pred, idx)
-            pred_h_calibrated = tf.numpy_function(isoreg.predict, [pred_h], tf.float32)
-            pred_h_calibrated.set_shape(pred_h.shape)
-
-            calibrated_list.append((idx, pred_h_calibrated))
-
-        # 构建最终输出（与 raw_pred 相同 shape）
-        calibrated_final = tf.tensor_scatter_nd_update(raw_pred,
-                                                       indices=tf.concat([i for i, _ in calibrated_list], axis=0)[:,
-                                                               tf.newaxis],
-                                                       updates=tf.concat([v for _, v in calibrated_list], axis=0))
-
-        return tf.expand_dims(calibrated_final, axis=1)  # (B, 1)
-
-
 
 
 # MMOE
@@ -982,6 +932,250 @@ class MULTI_HEAD_LTV_MODEL_ADD_HEAD_BN(keras.Model):
 
                 # 选出对应 head 的 pred 和 label
                 # print(y_pred.shape, y_true.shape) # (2048, 1) (432,)
+                head_pred = tf.gather(y_pred, idxs)
+                head_true = tf.gather(y_true, idxs)
+
+                hour_model_pred[head].append(head_pred)
+                hour_model_true[head].append(head_true)
+
+        # 处理成 一维tensor
+        def safe_concat_and_maybe_squeeze(tensor_list):
+            out = tf.concat(tensor_list, axis=0)
+            if len(out.shape) == 2 and out.shape[1] == 1:
+                out = tf.squeeze(out, axis=1)
+            return out
+
+        for head in range(self.num_heads):
+            if len(hour_model_pred[head]) == 0:
+                continue
+
+            hour_model_pred[head] = safe_concat_and_maybe_squeeze(hour_model_pred[head])
+            hour_model_true[head] = safe_concat_and_maybe_squeeze(hour_model_true[head])
+        return hour_model_pred, hour_model_true
+    def evaluate_exp(self, test_dataset):
+        # 计算各个头的期望的 bias
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        mape = {}
+        for head in head_pred.keys():
+            # 对每个head的所有结果 求和
+            head_pred[head] = tf.reduce_sum(head_pred[head]).numpy()
+            head_true[head] = tf.reduce_sum(head_true[head]).numpy()
+
+
+            pred = head_pred[head]
+            true = head_true[head]
+            mape[head] = (pred - true) / (true + 1.0)
+            mape[head] = round(mape[head], 4)
+
+
+        return {
+            'pred_sum': head_pred,
+            'true_sum': head_true,
+            'bias' : mape
+        }
+
+
+
+
+    def evaluate_rank(self, test_dataset, is_plot = True ):
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        rank_res = {}
+        for head in head_pred.keys():
+            head_name = f"{head + 1}_h rank_score"
+            pred = head_pred[head]
+            true = head_true[head]
+            if len(pred):
+                rank_res[head_name] = round(self.calculate_area_under_gain_curve(pred, true, head_name, is_plot), 4)
+
+        return rank_res
+
+    def calculate_area_under_gain_curve(self, pred_list, true_list, head_name="", is_plot = True):
+        # 将零维张量列表转换为一维 NumPy 数组
+        pred = pred_list.numpy()
+        true = true_list.numpy()
+
+        # 创建 DataFrame
+        df = pd.DataFrame({'pred': pred, 'true': true})
+
+        # 【1】预测值排序的增益曲线
+        df_pred_sorted = df.sort_values(by='pred', ascending=False).copy()
+        df_pred_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_pred_sorted) + 1) / len(df_pred_sorted)
+        df_pred_sorted['cumulative_percentage_ltv'] = df_pred_sorted['true'].cumsum() / df_pred_sorted['true'].sum()
+        area_pred = np.trapz(df_pred_sorted['cumulative_percentage_ltv'],
+                             df_pred_sorted['cumulative_percentage_customers'])
+
+        if is_plot:
+            # 【2】真实值排序的理想增益曲线（Ground Truth 理想线）
+            df_true_sorted = df.sort_values(by='true', ascending=False).copy()
+            df_true_sorted['cumulative_percentage_customers'] = np.arange(1, len(df_true_sorted) + 1) / len(df_true_sorted)
+            df_true_sorted['cumulative_percentage_ltv'] = df_true_sorted['true'].cumsum() / df_true_sorted['true'].sum()
+            area_true = np.trapz(df_true_sorted['cumulative_percentage_ltv'],
+                                 df_true_sorted['cumulative_percentage_customers'])
+
+            # 【3】绘图
+            plt.figure(figsize=(10, 6))
+            plt.plot(df_pred_sorted['cumulative_percentage_customers'],
+                     df_pred_sorted['cumulative_percentage_ltv'],
+                     label="Gain Curve (Predicted)", linewidth=2)
+            plt.plot(df_true_sorted['cumulative_percentage_customers'],
+                     df_true_sorted['cumulative_percentage_ltv'],
+                     label="Ideal Gain Curve (Ground Truth Sorted)",
+                     linestyle='--', color='black', linewidth=2)
+            plt.plot([0, 1], [0, 1], linestyle=':', color='gray', label="Random Model")
+
+            plt.xlabel('Cumulative Percentage of Customers')
+            plt.ylabel('Cumulative Percentage of Total LTV')
+            plt.title(f'{head_name} Gain Chart')
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.show()
+
+        return area_pred
+
+
+    def evaluate_budget_exp(self, test_dataset, is_plot = True ):
+
+        head_pred, head_true = self.predict_head_score(test_dataset)
+
+        rank_res = {}
+        for head in head_pred.keys():
+            head_name = f"{head + 1}_h rank_score"
+            pred = head_pred[head]
+            true = head_true[head]
+            if len(pred):
+                self.evaluate_ltv_bucket_chart(pred, true, head_name)
+
+        return -1
+
+
+    def evaluate_ltv_bucket_chart(self, pred_list, true_list, head_name=""):
+        # 将零维张量列表转换为一维 NumPy 数组
+        pred = pred_list.numpy()
+        true = true_list.numpy()
+
+        # 创建 DataFrame
+        df = pd.DataFrame({'pred': pred, 'true': true})
+
+        # 分成10分位桶（基于预测值）
+        df['bucket'] = pd.qcut(df['pred'], q=10, labels=False, duplicates='drop')
+
+        # 每桶计算真实值和预测值的均值
+        bucket_stats = df.groupby('bucket').agg({
+            'true': 'mean',
+            'pred': 'mean'
+        }).rename(columns={'true': 'True LTV', 'pred': 'Predicted LTV'})
+
+        # 可视化
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        plt.figure(figsize=(10, 6))
+        x = np.arange(len(bucket_stats))
+        width = 0.35
+
+        plt.bar(x - width/2, bucket_stats['True LTV'], width, label='True LTV')
+        plt.bar(x + width/2, bucket_stats['Predicted LTV'], width, label='Predicted LTV')
+
+        plt.xlabel('Decile Buckets (by Prediction)')
+        plt.ylabel('Mean LTV')
+        plt.title(f'LTV Decile Chart - {head_name}')
+        plt.xticks(x, [f'Q{i+1}' for i in x])
+        plt.legend()
+        plt.grid(True, axis='y', linestyle='--', alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+
+class MultiHeadCalibratedLTVModel(MULTI_HEAD_LTV_MODEL_ADD_HEAD_BN):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.head_isoreg = {}  # 每个 head 的保序回归器 {0: IR, 1: IR, ..., n-1: IR}
+        self.has_total_amt_name = ""
+        self.dense_price_features_name = ''
+        self.dense_price_features = []
+
+    def set_calibrators(self, isoreg_dict, user_dense_price_features, dense_price_feature_name, pay_amout_flag):
+        """
+        设置每个 head 的保序回归器
+        :param isoreg_dict: dict<int, IsotonicRegression>
+        """
+        self.head_isoreg = isoreg_dict
+        self.has_total_amt_name = pay_amout_flag
+        self.dense_price_features = user_dense_price_features
+        self.dense_price_features_name = dense_price_feature_name
+
+    def predict(self, inputs, batch_size=None):
+
+        # 获取 nh 已付费金额
+        has_pay_amout = None
+        for i, v in enumerate(self.dense_price_features):
+            if v == self.has_total_amt_name:
+                has_pay_amout = tf.gather(inputs[self.dense_price_features_name], indices=i, axis=1)
+                has_pay_amout = tf.reshape(has_pay_amout, (-1, 1))
+
+        # 加上已付费金额
+        raw_pred = super().predict(inputs, batch_size=batch_size) + has_pay_amout  # shape: (B, 1)
+
+        # 获取所属 head， 选择对应的 head的 保序回归
+        hour_idx = None
+        for i, v in enumerate(self.sparse_features):
+            if v == self.hour_flag:
+                hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis=1) - 1, tf.int32)
+                hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
+
+        # shape: (B,)
+        raw_pred = tf.squeeze(raw_pred, axis=1)
+
+        # 分别对每个 head 的样本做校准
+        calibrated_list = []
+        for h in range(self.num_heads):
+            isoreg = self.head_isoreg.get(h, None)
+            idx = tf.where(tf.equal(hour_idx, h))[:, 0]
+
+            if tf.size(idx) == 0 or isoreg is None:
+                # 没有样本或该 head 没有校准器，直接返回原始预测
+                continue
+
+            pred_h = tf.gather(raw_pred, idx)
+            pred_h_calibrated = tf.numpy_function(isoreg.predict, [pred_h], tf.float32)
+            pred_h_calibrated.set_shape(pred_h.shape)
+
+            calibrated_list.append((idx, pred_h_calibrated))
+
+        # 构建最终输出（与 raw_pred 相同 shape）
+        calibrated_final = tf.tensor_scatter_nd_update(raw_pred,
+                                                       indices=tf.concat([i for i, _ in calibrated_list], axis=0)[:,
+                                                               tf.newaxis],
+                                                       updates=tf.concat([v for _, v in calibrated_list], axis=0))
+
+        return tf.expand_dims(calibrated_final, axis=1)  # (B, 1)
+
+
+    def predict_head_score(self, test_dataset):
+        hour_model_pred = {k: [] for k in range(self.num_heads)}
+        hour_model_true = {k: [] for k in range(self.num_heads)}
+        mode = self.loss.mode
+        for batch in test_dataset:
+            inputs, y_true_packed = batch
+            y_pred = self.predict(inputs)
+
+            hour_idx = None
+            y_true = tf.reshape(y_true_packed[:, 0], (-1, 1))
+
+            for i, v in enumerate(self.sparse_features):
+                if v == self.hour_flag:
+                    hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis = 1) - 1, tf.int64)
+                    hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
+
+            for head in range(self.num_heads):
+                idxs = tf.where(tf.equal(hour_idx, head))[:, 0]
+                if tf.size(idxs) == 0:
+                    continue
                 head_pred = tf.gather(y_pred, idxs)
                 head_true = tf.gather(y_true, idxs)
 
