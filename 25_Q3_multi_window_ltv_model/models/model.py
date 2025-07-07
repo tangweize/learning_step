@@ -442,6 +442,63 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
         plt.show()
 
 
+# 正式模型 + 保序回归
+from sklearn.isotonic import IsotonicRegression
+import tensorflow as tf
+import numpy as np
+
+
+class MultiHeadCalibratedLTVModel(MULTI_HEAD_LTV_MODEL):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.head_isoreg = {}  # 每个 head 的保序回归器 {0: IR, 1: IR, ..., n-1: IR}
+
+    def set_calibrators(self, isoreg_dict):
+        """
+        设置每个 head 的保序回归器
+        :param isoreg_dict: dict<int, IsotonicRegression>
+        """
+        self.head_isoreg = isoreg_dict
+
+    def predict(self, inputs, batch_size=None):
+        raw_pred = super().predict(inputs, batch_size=batch_size)  # shape: (B, 1)
+
+        # 获取所属 head
+        hour_idx = None
+        for i, v in enumerate(self.sparse_features):
+            if v == self.hour_flag:
+                hour_idx = tf.cast(tf.gather(inputs[self.sparse_group_name], indices=i, axis=1) - 1, tf.int32)
+                hour_idx = tf.clip_by_value(hour_idx, 0, self.num_heads - 1)
+
+        # shape: (B,)
+        raw_pred = tf.squeeze(raw_pred, axis=1)
+
+        # 分别对每个 head 的样本做校准
+        calibrated_list = []
+        for h in range(self.num_heads):
+            isoreg = self.head_isoreg.get(h, None)
+            idx = tf.where(tf.equal(hour_idx, h))[:, 0]
+
+            if tf.size(idx) == 0 or isoreg is None:
+                # 没有样本或该 head 没有校准器，直接返回原始预测
+                continue
+
+            pred_h = tf.gather(raw_pred, idx)
+            pred_h_calibrated = tf.numpy_function(isoreg.predict, [pred_h], tf.float32)
+            pred_h_calibrated.set_shape(pred_h.shape)
+
+            calibrated_list.append((idx, pred_h_calibrated))
+
+        # 构建最终输出（与 raw_pred 相同 shape）
+        calibrated_final = tf.tensor_scatter_nd_update(raw_pred,
+                                                       indices=tf.concat([i for i, _ in calibrated_list], axis=0)[:,
+                                                               tf.newaxis],
+                                                       updates=tf.concat([v for _, v in calibrated_list], axis=0))
+
+        return tf.expand_dims(calibrated_final, axis=1)  # (B, 1)
+
+
+
 
 # MMOE
 # class MMOE(keras.Model):
@@ -568,7 +625,6 @@ class MULTI_HEAD_LTV_MODEL(keras.Model):
 demo model 之前用keras 不做任何处理效果都不差。
 将复现一下，寻找其中diff
 """
-
 class NO_Process_Layer(layers.Layer):
     def __init__(self, dense_cnt_features, dense_price_features, dense_duration_features, user_sparse_features):
         super().__init__()
