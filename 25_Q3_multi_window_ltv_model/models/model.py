@@ -24,13 +24,13 @@ class Dense_Process_LOG_Layer(layers.Layer):
             if field in self.dense_cnt_features:
                 input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
                 input_cast = tf.maximum(input_tensor, 0.0)
-                normalized_feature = tf.math.log1p(input_cast + 1) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
+                normalized_feature = tf.math.log(input_cast + 2) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
                 # temp_feature = tf.expand_dims(normalized_feature)
                 processed_dense_features.append(normalized_feature)
             elif field in self.dense_price_features or field in self.dense_duration_features:
                 input_tensor = tf.cast(input_tensor, tf.float32)  # 显式转 float
                 input_cast = tf.maximum(input_tensor, 0.0)
-                normalized_feature = tf.math.log1p(input_cast + 1) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
+                normalized_feature = tf.math.log(input_cast + 2) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
                 # temp_feature = tf.expand_dims(normalized_feature)
                 processed_dense_features.append(normalized_feature)
         return self.concat_layer(processed_dense_features)
@@ -57,9 +57,9 @@ class Dense_Process_LOG_NORMAL_Layer(tf.keras.layers.Layer):
             x = tf.maximum(x, 0.0)
 
             if field in self.dense_cnt_features:
-                x = tf.math.log1p(x + 1) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
+                x = tf.math.log(x + 2) / tf.math.log(tf.constant(2.0, dtype=tf.float32))
             elif field in self.dense_price_features or field in self.dense_duration_features:
-                x = tf.math.log1p(x + 1) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
+                x = tf.math.log(x + 2) / tf.math.log(tf.constant(10.0, dtype=tf.float32))
 
             x = self.bn_layers[field](x, training=training)  # 注意加 training 标志
             processed_dense_features.append(x)
