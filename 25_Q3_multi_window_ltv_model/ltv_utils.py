@@ -559,3 +559,35 @@ def create_hour_tf_dataset(dataset, MODEL_HOUR=0):
     )
 
     return tf.data.Dataset.from_generator(generator, output_signature=output_signature)
+
+import datetime
+
+def log_print(msg):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{now}] {msg}")
+
+
+import pyarrow as pa
+import pyarrow.orc as orc
+
+def save_result(data, config_name):
+    """保存文件到hdfs"""
+
+    import os
+    # 目标路径
+    path = "/root/hdfs/write/result_to_hive"
+    # 判断目录是否存在
+    if not os.path.exists(path):
+        # 创建目录
+        os.makedirs(path)
+        print(f"目录已创建: {path}")
+    else:
+        print(f"目录已存在: {path}")
+
+    res_file_path = f'/root/hdfs/write/result_to_hive/{config_name}_res.orc'
+    print(f'saving final result to /root/hdfs/write/result_to_hive/ ...')
+    table = pa.Table.from_pandas(data, preserve_index=False)
+
+    orc.write_table(table, res_file_path)
+    print(f'saving final result to /root/hdfs/write/result_to_hive/ done.')
+
