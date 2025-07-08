@@ -254,13 +254,16 @@ if __name__ == "__main__":
         df = pd.DataFrame({
             'deviceid': deviceids,
             'install_date': install_dates,
-            'platform_label': platform_labels,
-            'dim_os_name1': dim_os_names,
+            'platform_level': platform_labels,
+            'dim_os_name': dim_os_names,
             'is_a1x_a33': is_a1x_a33,
-            'predict_score': predict_score[0].reshape(-1)
+            'predict_prob_col': predict_score[0].reshape(-1)
         })
 
         all_dfs.append(df)
 
     # 合并所有 batch 的 DataFrame
+    today_str = datetime.today().strftime('%Y-%m-%d')
     final_df = pd.concat(all_dfs, ignore_index=True)
+    final_df['predict_date'] = today_str
+    save_result(final_df, 'recent_sampe_for_thd')
