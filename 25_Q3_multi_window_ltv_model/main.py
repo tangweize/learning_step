@@ -84,11 +84,10 @@ def save_onnx(model_add_ir, tmp_path, target_path, model_file_name):
 
     model_path = target_path + model_name
     # 发布到线上路径
-    shutil.move(tmp_model_path, model_path)
+    shutil.copy(tmp_model_path, model_path)
 
     # 存档路径
-    shutil.move(tmp_model_path, datetime.datetime.now().strftime('%Y%m%d') + "multi_window_liuliang_ltv_predict_model_v1" +  model_path)
-
+    shutil.copy(tmp_model_path, datetime.datetime.now().strftime('%Y%m%d') + "multi_window_liuliang_ltv_predict_model_v1" +  model_file_name)
 
 if __name__ == "__main__":
 
@@ -186,8 +185,10 @@ if __name__ == "__main__":
 
         iso_model = head_isoreg[head_num]
         iso_pred = iso_model.predict(pred_np)
+        tmp_bias = round((iso_pred.sum() - true_np.sum()) / true_np.sum(), 3)
         # pred
-        log_print(f"head: {head_num}, pred: {iso_pred.sum()}, true: {true_np.sum() }, bias: ",round((iso_pred.sum() - true_np.sum()) / true_np.sum(), 3))
+        log_print(f"head: {head_num}, pred: {iso_pred.sum()}, true: {true_np.sum()}, bias: {tmp_bias}")
+
 
     # step3 融入到 多头深度模型 + 保序回归
     model_add_ir = MultiHeadCalibratedLTVModel(5, [200, 200], [128, 128], 'user_dense_features',
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     ort_session = ort.InferenceSession(tmp_model_path)
         # 获得模型输入特征名
     input_names = [inp.name for inp in ort_session.get_inputs()]
-    log_print("模型输入名称:", input_names)
+    log_print(f"模型输入名称: {input_names}" )
     output_names = [out.name for out in ort_session.get_outputs()]
 
 
@@ -247,6 +248,8 @@ if __name__ == "__main__":
         platform_labels = batch['platform_label'].numpy().astype(str)
         dim_os_names = batch['dim_os_name1'].numpy().astype(str)
         is_a1x_a33 = batch['is_a1x_a33'].numpy().astype(str)
+        hour_vector = tf.cast(tf.gather(batch['user_sparse_features'], indices=0, axis=1), tf.int64).numpy()
+
 
         # ONNX 推理
         predict_score = ort_session.run(output_names, inputs)
@@ -257,12 +260,14 @@ if __name__ == "__main__":
             'platform_level': platform_labels,
             'dim_os_name': dim_os_names,
             'is_a1x_a33': is_a1x_a33,
+            'point_gap_hour': hour_vector,
             'predict_prob_col': predict_score[0].reshape(-1)
         })
 
         all_dfs.append(df)
 
     # 合并所有 batch 的 DataFrame
+    from datetime import datetime
     today_str = datetime.today().strftime('%Y-%m-%d')
     final_df = pd.concat(all_dfs, ignore_index=True)
     final_df['predict_date'] = today_str
