@@ -92,7 +92,7 @@ def save_onnx(model_add_ir, tmp_path, target_path, model_file_name):
 if __name__ == "__main__":
 
     # step1： 训练 多头深度模型
-    group_2_features = read_feature_json_config('features/feature_list.json')
+    group_2_features = read_feature_json_config('/tf/launcher/features/feature_list.json')
     train_file_name = '/tf/hdfs/data/big_data_multi_window_model_train/part-r-00000'
     valid_file_name = '/tf/hdfs/data/big_data_multi_window_model_valid/part-r-00000'
     test_file_name = '/tf/hdfs/data/big_data_multi_window_model_test/part-r-00000'
